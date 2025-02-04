@@ -22,12 +22,16 @@ rm Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
 eval "$(~/miniconda3/bin/conda shell.bash hook)"
 
 
+pip install -r requirements.txt
+
 # 2. Install requirements.
 pip install -U jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 pip install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 pip install -U flax optax chex webdataset timm wandb
 pip install einops  tensorflow matplotlib diffusers
 pip install gcsfs==4.51
+
+
 
 
 # 3. Install Pillow-SIMD.
