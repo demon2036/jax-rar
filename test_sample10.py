@@ -23,6 +23,7 @@ import jax
 import flax
 import jax.numpy as jnp
 import chex
+from jax.sharding import PartitionSpec as P
 
 from jax.experimental.shard_map import shard_map
 
@@ -50,9 +51,14 @@ class RARConfig:
 def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size=1,randomize_temperature=1.02):
     image_seq_len = 256
 
-    #condition=None,
+    def choice(logits,key):
+        logits=logits/randomize_temperature
+        logits=flax.linen.softmax(logits,axis=-1)
+        return jax.random.choice(key, a=jnp.arange(0, logits.shape[0]), p=logits)
 
-    key,key_sample=jax.random.split(key)
+    vmap_choice = jax.vmap(choice)
+
+    key,key_sample=jax.random.split(key[0])
 
     condition = jax.random.randint(key, (batch_size, 1), 0, 1000)
     guidance_scale = 16.0
@@ -64,10 +70,9 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-
     max_cache_length = 258
     cache = init_cache(config, num_samples * 2 if guidance_scale != 0 else num_samples,
-                       max_cache_length=max_cache_length, dtype=jnp.float32)
+                       max_cache_length=max_cache_length, dtype=jnp.bfloat16)
 
     attn_mask = jnp.zeros((1, max_cache_length), dtype=jnp.int32)
     prefill_jit = jax.jit(partial(model.apply, method=FlaxRAR.prefill))
@@ -87,9 +92,10 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
 
     position_ids = jnp.arange(0, 1)[None, ...]
 
-    logits = logits / randomize_temperature
-    next_token=jax.random.categorical(key_sample,logits[:, -1])#.reshape((-1,1))
+    # logits = logits / randomize_temperature
+    # next_token=jax.random.categorical(key_sample,logits[:, -1])#.reshape((-1,1))
     # next_token = jnp.argmax(logits[:, -1], axis=-1)
+    next_token=vmap_choice(logits,jax.random.split(key,logits.shape[0]))
 
     token_buffer = token_buffer.at[:, 0].set(next_token)
     decode_jit = jax.jit(partial(model.apply, method=FlaxRAR.decode))
@@ -118,8 +124,11 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
                                        sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
 
         sample_state.key, key_sample = jax.random.split(sample_state.key)
-        logits = logits / randomize_temperature
-        next_token = jax.random.categorical(key_sample, logits[:, -1])  # .reshape((-1,1))
+
+        next_token = vmap_choice(key_sample, jax.random.split(key, logits.shape[0]))
+
+        # logits = logits / randomize_temperature
+        # next_token = jax.random.categorical(key_sample, logits[:, -1])  # .reshape((-1,1))
 
         # next_token = jnp.argmax(logits[:, -1], axis=-1)
         sample_state.token_buffer = sample_state.token_buffer.at[:, i + 1].set(next_token)
@@ -133,7 +142,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
 
     reconstructed = tokenizer_jax.apply({'params':tokenizer_params}, token_buffer, method=PretrainedTokenizer.decode, deterministic=True)
     generated_image = jnp.array(reconstructed * 255.0, dtype=np.uint8)
-
+    print(f'{generated_image.shape=}')
     return generated_image
 
     # return token_buffer
@@ -142,7 +151,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     local_dir='./'
 
     class ConfigTokenizer:
@@ -186,34 +195,43 @@ def init_model():
     tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
     tokenizer = PretrainedTokenizer(config=config_tokenizer)
 
+    rar_config=RARConfig(hidden_size=  config.model.generator.hidden_size,num_hidden_layers=config.model.generator.num_hidden_layers)
     # print(tokenizer_params.keys())
 
-    return model_params,tokenizer_params,model,tokenizer
+    return model_params,tokenizer_params,model,tokenizer,rar_config
 
 
 def main3():
     # 初始化模型
-    model_params,tokenizer_params,model,tokenizer_jax = init_model()
+    model_params,tokenizer_params,model,tokenizer_jax,rar_config = init_model()
 
     # 构造随机输入：input_ids（整数 token）和 condition（假设为 [B, 1]）
-    batch_size = 8
+    batch_size = 128
     rng = jax.random.PRNGKey(2)
     sample_rng, dropout_rng = jax.random.split(rng)
+    sample_rng=jax.random.split(sample_rng,jax.device_count())
 
-    physical_mesh=mesh_utils.create_device_mesh((1,))
+    physical_mesh=mesh_utils.create_device_mesh((jax.device_count(),))
     mesh=Mesh(physical_mesh, ('dp',))
 
-
-    sample_fn=partial(sample,model=model,config=RARConfig(),batch_size=batch_size,tokenizer_jax=tokenizer_jax)
-    # sample_fn=shard_map(sample_fn,mesh=mesh)
+    sample_fn=partial(sample,model=model,config=rar_config,batch_size=batch_size,tokenizer_jax=tokenizer_jax)
+    sample_fn=shard_map(sample_fn,mesh=mesh,in_specs=(
+        P('dp'),P(None),P(None)
+    ),
+                        # out_specs=P(None)
+                        out_specs=P('dp')
+    )
 
     # 构造 rngs 字典
     sample_jit=jax.jit(sample_fn)
-    start=time.time()
-    # token_buffer=sample_jit(model_params,sample_rng)
-    sample_img=sample_jit(sample_rng,model_params,tokenizer_params)
-    sample_img.block_until_ready()
-    print(time.time()-start)
+
+    for _ in tqdm.tqdm(range(200)):
+        # start=time.time()
+        # token_buffer=sample_jit(model_params,sample_rng)
+        sample_img=sample_jit(sample_rng,model_params,tokenizer_params)
+        sample_img.block_until_ready()
+        print(sample_img.shape)
+        # print(time.time()-start)
 
     # generated_image = np.array(reconstructed * 255.0,dtype=np.uint8)
     generated_image=np.array(sample_img)

@@ -13,6 +13,10 @@ from flax.training import train_state
 import optax
 import flax
 
+
+# dtype=jnp.bfloat16
+dtype=jnp.bfloat16
+
 # ------------------------------
 # 辅助函数
 # ------------------------------
@@ -46,7 +50,7 @@ class AttentionRAR(nn.Module):
         self.head_dim = self.dim // self.num_heads
         self.scale = self.head_dim ** -0.5
 
-        self.qkv = nn.Dense(3 * self.dim, use_bias=self.qkv_bias, name="qkv")
+        self.qkv = nn.Dense(3 * self.dim, use_bias=self.qkv_bias, name="qkv",dtype=dtype)
         if self.qk_norm:
             # 分别对 q 和 k 做 layer norm
             self.q_norm = self.norm_layer(name="q_norm", epsilon=1e-6)
@@ -55,7 +59,7 @@ class AttentionRAR(nn.Module):
             self.q_norm = lambda x: x
             self.k_norm = lambda x: x
 
-        self.proj = nn.Dense(self.dim, name="proj")
+        self.proj = nn.Dense(self.dim, name="proj",dtype=dtype)
         self.proj_dropout = nn.Dropout(rate=self.proj_drop)
 
     def __call__(self, x: jnp.ndarray, attn_mask: Optional[jnp.ndarray] = None,
@@ -70,8 +74,8 @@ class AttentionRAR(nn.Module):
         # 转置后得到 (3, B, num_heads, N, head_dim)
         qkv = jnp.transpose(qkv, (2, 0, 3, 1, 4))
         q, k, v = qkv[0], qkv[1], qkv[2]
-        q = self.q_norm(q)
-        k = self.k_norm(k)
+        q = self.q_norm(q).astype(q.dtype)
+        k = self.k_norm(k).astype(q.dtype)
 
         # 如果开启 KV cache，可以将过去的 k、v 拼接（这里只是简单示例，实际使用中需使用 mutable state）
         if cache is not None:
@@ -146,7 +150,7 @@ class FinalLayerRAR(nn.Module):
         self.norm_final = self.norm_layer(epsilon=1e-6, use_scale=False, use_bias=False, name="norm_final")
         self.adaLN_modulation = nn.Sequential([
             nn.silu,
-            nn.Dense(2 * self.dim, name="adaln_fc")
+            nn.Dense(2 * self.dim, name="adaln_fc",dtype=dtype)
         ])
 
     def __call__(self, x: jnp.ndarray, c: jnp.ndarray) -> jnp.ndarray:
@@ -188,9 +192,9 @@ class BlockRAR(nn.Module):
         self.norm2 = self.norm_layer(epsilon=1e-6, name="norm2")
         hidden_features = int(self.dim * self.mlp_ratio)
         self.mlp = nn.Sequential([
-            nn.Dense(hidden_features, name="mlp_fc1"),
+            nn.Dense(hidden_features, name="mlp_fc1",dtype=dtype),
             self.act_layer,
-            nn.Dense(self.dim, name="mlp_fc2"),
+            nn.Dense(self.dim, name="mlp_fc2",dtype=dtype),
         ])
         # 生成 6*dim 的 modulation 参数
         self.adaLN_modulation = nn.Sequential([
@@ -238,6 +242,8 @@ class BlockRAR(nn.Module):
 
 class FlaxRAR(nn.Module):
     config: Any  # 配置字典
+    dtype:Any = dtype
+
     # 为简化起见，下面将一些参数展开为属性
     def setup(self):
         # 从 config 中解析参数
@@ -276,7 +282,7 @@ class FlaxRAR(nn.Module):
         ) for i in range(depth)]
         # embeddings：token 数 embedding（target_codebook_size + 1 + condition_num_classes + 1）
         vocab_size = target_codebook_size + 1 + condition_num_classes + 1
-        self.embeddings = nn.Embed(num_embeddings=vocab_size, features=embed_dim, name="embeddings")
+        self.embeddings = nn.Embed(num_embeddings=vocab_size, features=embed_dim, name="embeddings",dtype=dtype)
 
         # 位置编码：假设 shape 为 [1, image_seq_len + 1024, embed_dim]
         pos_embed_shape = (1, image_seq_len + 1024, embed_dim)
