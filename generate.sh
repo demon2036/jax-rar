@@ -18,6 +18,6 @@ for script in "${SCRIPT_PATHS[@]}"; do
 #    python -u test.py
 #    python -u main_adv.py --yaml-path $script
 #    python -u main.py --yaml-path $script
-    python -u generate.py --output-dir $script --resume
+    python -u generate.py --output-dir $script #--resume
 
 done

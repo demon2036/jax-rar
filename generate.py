@@ -185,7 +185,7 @@ def main(args):
         else:
             ckpt,ckpts=ckpts[0],ckpts[1:]
             save_args = orbax_utils.save_args_from_target(ckpt)
-            checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+            checkpointer.save(f'{dst}/resume-{ckpt["label"]%2}', ckpt, save_args=save_args, force=True)
 
         ckpt,send_file_threads=send_file(keep_files,dst,sample_rng,step)
         ckpts.append(ckpt)
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     # parser.add_argument("--per-device-batch", type=int, default=128)  #128
     parser.add_argument("--resume",  action="store_true", default=False)
 
-    parser.add_argument("--global-seed", type=int, default=0)
+    parser.add_argument("--global-seed", type=int, default=2036)
     parser.add_argument("--batch-per-core", type=int, default=128)
     parser.add_argument("--num-samples", type=int, default=50000000)
     jax.distributed.initialize()
