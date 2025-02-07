@@ -15,7 +15,7 @@ from PIL import Image
 import numpy as np
 from flax.training import orbax_utils
 from jax._src.mesh import Mesh
-from jax.experimental import mesh_utils
+from jax.experimental import mesh_utils, multihost_utils
 from webdataset import TarWriter
 
 import demo_util
@@ -185,6 +185,7 @@ def main(args):
         else:
             ckpt,ckpts=ckpts[0],ckpts[1:]
             save_args = orbax_utils.save_args_from_target(ckpt)
+            multihost_utils.sync_global_devices('sync device for save')
             checkpointer.save(f'{dst}/resume-{ckpt["label"]%2}', ckpt, save_args=save_args, force=True)
 
         ckpt,send_file_threads=send_file(keep_files,dst,sample_rng,step)
