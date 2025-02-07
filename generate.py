@@ -157,7 +157,14 @@ def main(args):
             'rng': rng,
             'label': 1
         }
-        ckpt = checkpointer.restore(f'{dst}/resume.json', item=ckpt)
+
+        try:
+
+            ckpt = checkpointer.restore(f'{dst}/resume-0', item=ckpt)
+        except Exception as e:
+            ckpt = checkpointer.restore(f'{dst}/resume-1', item=ckpt)
+            print(e)
+
         sample_rng = ckpt['rng']
         init_step = ckpt['label']
     else:
