@@ -287,7 +287,8 @@ class Sampler:
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
-        iters = 100
+        # iters = 100
+        iters = 51200//jax.device_count()
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
             data.append(np.array(sample_img))

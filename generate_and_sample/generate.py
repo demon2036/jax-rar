@@ -133,7 +133,6 @@ def main(args):
         }
 
         try:
-
             ckpt = checkpointer.restore(f'{dst}/resume-0', item=ckpt)
         except Exception as e:
             ckpt = checkpointer.restore(f'{dst}/resume-1', item=ckpt)
@@ -151,7 +150,7 @@ def main(args):
         pattern=shard_filename,
         maxcount=data_per_shard,
         maxsize=3e10,
-        start_shard=jax.process_index()+init_step,
+        start_shard=jax.process_index()+init_step*jax.process_count(),
         verbose=jax.process_index() == 0,
         progress_count=jax.process_count()
         # maxsize=shard_size,
