@@ -34,10 +34,6 @@ def thread_write(images, class_labels, sink):
 
     images=collect_process_data(images)
     class_labels = collect_process_data(class_labels)
-
-
-
-
     global counter
 
     for img, cls_label in zip(images, class_labels):
@@ -49,6 +45,35 @@ def thread_write(images, class_labels, sink):
         counter += 1
     if jax.process_index() == 0:
         print(counter, images.shape)
+
+
+
+def thread_write_vq(tokens, class_labels,siglip_features,dino_features, sink):
+    # images = np.array(images)
+    # class_labels = np.array(class_labels)
+
+    tokens=np.array(tokens,dtype=np.int16)
+    class_labels = np.array(class_labels)
+    siglip_features=np.array(siglip_features,dtype=np.int16)
+    dino_features=np.array(dino_features,dtype=np.int16)
+
+    global counter
+
+    for token, cls_label,siglip_feature,dino_feature in zip(tokens, class_labels,siglip_features,dino_features):
+        # print(siglip_feature.shape,dino_feature.shape,token.dtype,cls_label.dtype,siglip_features.dtype,dino_features.dtype)
+        # print(token)
+        # print(type(token),type(cls_label),type(siglip_features),type(dino_feature))
+
+        sink.write({
+            "__key__": "%010d" % counter,
+            "token.pyd": token,
+            "cls": int(cls_label),
+            "siglip_feature.pyd": siglip_feature,
+            'dino_feature.pyd':dino_feature
+        })
+        counter += 1
+    # if jax.process_index() == 0:
+    #     print(counter, images.shape)
 
 class CustomShardWriter(wds.ShardWriter):
     """

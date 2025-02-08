@@ -133,15 +133,7 @@ def main(args):
     shard_dir_path = Path('shard_path')
     shard_dir_path.mkdir(exist_ok=True)
     shard_filename = str(shard_dir_path / 'shards-%05d.tar')
-    sink = CustomShardWriter(
-        pattern=shard_filename,
-        maxcount=data_per_shard,
-        maxsize=3e10,
-        start_shard=jax.process_index(),
-        verbose=jax.process_index() == 0,
-        progress_count=jax.process_count()
-        # maxsize=shard_size,
-    )
+
 
     dst = get_remote_path(args.output_dir)
     thread_writes=[]
@@ -169,6 +161,20 @@ def main(args):
         init_step = ckpt['label']
     else:
         init_step=0
+
+
+
+
+    sink = CustomShardWriter(
+        pattern=shard_filename,
+        maxcount=data_per_shard,
+        maxsize=3e10,
+        start_shard=jax.process_index()+init_step,
+        verbose=jax.process_index() == 0,
+        progress_count=jax.process_count()
+        # maxsize=shard_size,
+    )
+
 
     iters=iteration
     print(init_step)
