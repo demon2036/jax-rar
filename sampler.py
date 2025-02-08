@@ -233,7 +233,8 @@ class Sampler:
         self.fid_eval_batch_size=1024
 
         def fid_apply_fn(x,params):
-            return self.fid_model.apply(params,x)
+
+            return self.fid_model.apply(params,x)#.with_memory_kind(kind="pinned_host")
 
         self.fid_apply_fn = shard_map(fid_apply_fn, mesh=mesh, in_specs=(
             P('dp'),P(None)
@@ -242,7 +243,7 @@ class Sampler:
             # out_specs=P(None),check_rep=False
         )
 
-        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn)
+        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,out_shardings=None)
 
 
     def compute_array_statistics(self,x):
@@ -288,7 +289,6 @@ class Sampler:
         data = []
         iters = 100
         for _ in tqdm.tqdm(range(iters)):
-
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
             data.append(np.array(sample_img))
 
@@ -300,11 +300,11 @@ class Sampler:
         return data
 
     def sample_and_eval(self,params):
-
-        generated_image=self.sample(params,False)
         # data=np.load('test2.npz')
         # generated_image = data['arr_0']
         # generated_image = self.sample(params, True)
+
+        generated_image=self.sample(params,False)
         fid=self.computer_fid(generated_image)
         return fid
 

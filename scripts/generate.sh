@@ -18,6 +18,6 @@ for script in "${SCRIPT_PATHS[@]}"; do
 #    python -u convert_vqgan_torch_to_flax.py
 #    python -u main_adv.py --yaml-path $script
 #    python -u main.py --yaml-path $script
-    python -u generate_and_sample/generate.py --output-dir $script --resume
+    python -u generate_and_sample/generate.py --output-dir $script #--resume
 
 done
