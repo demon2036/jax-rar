@@ -321,7 +321,7 @@ def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, em
         ema_state_dict = None
 
     to_save = {
-        'model': model_without_ddp.state_dict(),
+        'models': model_without_ddp.state_dict(),
         'model_ema': ema_state_dict,
         'optimizer': optimizer.state_dict(),
         'epoch': epoch,

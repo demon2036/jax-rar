@@ -111,7 +111,7 @@ class ReconstructionLoss_Stage2(torch.nn.Module):
         """Initializes the losses module.
 
         Args:
-            config: A dictionary, the configuration for the model and everything else.
+            config: A dictionary, the configuration for the models and everything else.
         """
         super().__init__()
         loss_config = config.losses

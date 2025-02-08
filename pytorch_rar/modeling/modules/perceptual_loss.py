@@ -30,7 +30,7 @@ class PerceptualLoss(torch.nn.Module):
         """Initializes the PerceptualLoss class.
 
         Args:
-            model_name: A string, the name of the perceptual loss model to use.
+            model_name: A string, the name of the perceptual loss models to use.
 
         Raise:
             ValueError: If the model_name does not contain "lpips" or "convnext_s".
@@ -38,13 +38,13 @@ class PerceptualLoss(torch.nn.Module):
         super().__init__()
         if ("lpips" not in model_name) and (
             "convnext_s" not in model_name):
-            raise ValueError(f"Unsupported Perceptual Loss model name {model_name}")
+            raise ValueError(f"Unsupported Perceptual Loss models name {model_name}")
         self.lpips = None
         self.convnext = None
         self.loss_weight_lpips = None
         self.loss_weight_convnext = None
 
-        # Parsing the model name. We support name formatted in
+        # Parsing the models name. We support name formatted in
         # "lpips-convnext_s-{float_number}-{float_number}", where the 
         # {float_number} refers to the loss weight for each component.
         # E.g., lpips-convnext_s-1.0-2.0 refers to compute the perceptual loss

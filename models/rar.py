@@ -3,7 +3,7 @@ jax_rar.py
 
 本文件给出基于 Flax 的 RAR 模型实现，同时包含从 PyTorch 权重转换的辅助代码和测试代码。
 """
-
+import dataclasses
 import math, numpy as np, jax, jax.numpy as jnp
 from functools import partial
 from typing import Any, Optional, Callable, Tuple
@@ -15,7 +15,7 @@ import flax
 
 
 # dtype=jnp.bfloat16
-dtype=jnp.bfloat16
+dtype=jnp.float32
 
 # ------------------------------
 # 辅助函数
@@ -240,25 +240,104 @@ class BlockRAR(nn.Module):
 # Flax 版本的 RAR 模型
 # ------------------------------
 
+
+
+
+
+"""
+
+
+
+vq_model:
+    codebook_size: 1024
+    token_size: 256
+    num_latent_tokens: 256
+    finetune_decoder: False
+    pretrained_tokenizer_weight: "maskgit-vqgan-imagenet-f16-256.bin"
+
+generator:
+        hidden_size: 768
+        num_hidden_layers: 24
+        num_attention_heads: 16
+        intermediate_size: 3072
+        dropout: 0.1
+        attn_drop: 0.1
+        class_label_dropout: 0.1
+        image_seq_len: 256
+        condition_num_classes: 1000
+
+
+
+embed_dim = self.config["models"]["generator"]["hidden_size"]
+        depth = self.config["models"]["generator"]["num_hidden_layers"]
+        num_heads = self.config["models"]["generator"]["num_attention_heads"]
+        intermediate_size = self.config["models"]["generator"]["intermediate_size"]
+        mlp_ratio = intermediate_size / embed_dim
+
+        image_seq_len = self.config["models"]["generator"]["image_seq_len"]
+        target_codebook_size = self.config["models"]["vq_model"]["codebook_size"]
+        condition_num_classes = self.config["models"]["generator"]["condition_num_classes"]
+
+        dropout_rate = self.config["models"]["generator"]["dropout"]
+        attn_dropout_rate = self.config["models"]["generator"]["attn_drop"]
+  self.random_ratio = self.config["models"]["generator"].get("random_ratio", 0.0)
+
+
+
+"""
+
+
+
+@dataclasses.dataclass
+class FlaxRARConfig:
+    def __init__(self,
+                 embed_dim,
+                 depth,
+                 intermediate_size,
+                 num_heads=16,
+                 image_seq_len=256,
+                 target_codebook_size=1024,
+                 condition_num_classes=1000,
+                 dropout_rate=0.0,
+                 attn_dropout_rate=0.0,
+                 random_ratio=0.0,
+    ):
+        self.embed_dim=embed_dim
+        self.depth=depth
+        self.num_heads=num_heads
+        self.intermediate_size=intermediate_size
+        self.mlp_ratio=intermediate_size / embed_dim
+        self.image_seq_len=image_seq_len
+        self.target_codebook_size=target_codebook_size
+        self.condition_num_classes=condition_num_classes
+        self.dropout_rate=dropout_rate
+        self.attn_dropout_rate=attn_dropout_rate
+        self.random_ratio=random_ratio
+
+
+
+
+
 class FlaxRAR(nn.Module):
-    config: Any  # 配置字典
+    # config: Any  # 配置字典
+    config: FlaxRARConfig  # 配置字典
     dtype:Any = dtype
 
     # 为简化起见，下面将一些参数展开为属性
     def setup(self):
         # 从 config 中解析参数
-        embed_dim = self.config["model"]["generator"]["hidden_size"]
-        depth = self.config["model"]["generator"]["num_hidden_layers"]
-        num_heads = self.config["model"]["generator"]["num_attention_heads"]
-        intermediate_size = self.config["model"]["generator"]["intermediate_size"]
+        embed_dim = self.config.embed_dim
+        depth = self.config.depth
+        num_heads = self.config.num_heads
+        intermediate_size = self.config.intermediate_size
         mlp_ratio = intermediate_size / embed_dim
 
-        image_seq_len = self.config["model"]["generator"]["image_seq_len"]
-        target_codebook_size = self.config["model"]["vq_model"]["codebook_size"]
-        condition_num_classes = self.config["model"]["generator"]["condition_num_classes"]
+        image_seq_len = self.config.image_seq_len
+        target_codebook_size = self.config.target_codebook_size
+        condition_num_classes = self.config.condition_num_classes
 
-        dropout_rate = self.config["model"]["generator"]["dropout"]
-        attn_dropout_rate = self.config["model"]["generator"]["attn_drop"]
+        dropout_rate = self.config.dropout_rate
+        attn_dropout_rate = self.config.attn_dropout_rate
 
         self.embed_dim = embed_dim
         self.image_seq_len = image_seq_len
@@ -305,7 +384,10 @@ class FlaxRAR(nn.Module):
         total_seq_len = image_seq_len + 1024
         self.attn_mask = build_causal_mask(total_seq_len)
         # 随机采样比例
-        self.random_ratio = self.config["model"]["generator"].get("random_ratio", 0.0)
+        # self.random_ratio = self.config["models"]["generator"].get("random_ratio", 0.0)
+
+        self.random_ratio = self.config.random_ratio
+
         # use_checkpoint 在 JAX 中可以使用 remat 包裹 Block，但这里暂略
 
     def sample_orders(self, x: jnp.ndarray, rng: jax.random.PRNGKey) -> jnp.ndarray:
@@ -338,20 +420,9 @@ class FlaxRAR(nn.Module):
         batch_indices = jnp.arange(0,batch_size)[...,None]
         shuffled_x = x[batch_indices, orders]
 
-        print(shuffled_x.shape)
-        # while True:
-        #     pass
 
         return shuffled_x
 
-        """
-        # 利用 vmap 实现 batch-wise indexing
-        print(x.shape,orders.shape)
-        def _shuffle(x_i, order_i):
-            # print(x_i.shape,order_i.shape)
-            return x_i[order_i]
-        return jax.vmap(_shuffle)(x, orders)
-        """
     def unshuffle(self, shuffled_x: jnp.ndarray, orders: jnp.ndarray) -> jnp.ndarray:
         """
         将 shuffle 后的结果还原
@@ -459,6 +530,112 @@ class FlaxRAR(nn.Module):
         if return_labels:
             return logits, labels
         return logits #, None
+
+
+
+
+
+
+
+
+
+
+
+    def train_dpo(self, input_ids: jnp.ndarray, condition: jnp.ndarray,
+                 rngs: dict=None,  # 要求传入 {"dropout": dropout_key, "sample": sample_key}
+                 return_labels: bool = False,
+                 orders: Optional[jnp.ndarray] = None,
+                 is_sampling: bool = True) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+        """
+        类似于 torch 版的 forward_fn
+        input_ids: [B, image_seq_len]，整数 token id
+        condition: [B, ?]（这里假设是 [B, 1] 或 [B, num_condition]）
+        rngs 中至少包含 "dropout" 和 "sample"
+        """
+        # 如果 orders 未给出，则生成 raster 顺序
+        B = input_ids.shape[0]
+        if orders is None:
+            orders = jnp.tile(jnp.arange(self.image_seq_len)[None, :], (B, 1))
+
+        # 复制一份 labels
+        labels = input_ids.copy()
+
+
+
+
+        # 将 condition 展开为 [B, condition_tokens] 并拼接到 input_ids 前
+        # 此处假设 condition 已经是合适 shape
+        input_ids = jnp.concatenate([condition.reshape(B, -1), input_ids.reshape(B, -1)], axis=1)
+
+
+
+
+        # 获取 token embedding
+        embeddings = self.embeddings(input_ids)  # [B, seq_len, embed_dim]
+        # condition_token 就取 embeddings 的第一 token（与 torch 版一致）
+        condition_token = embeddings[:, 0]  # [B, embed_dim]
+
+        # 位置编码：先复制 pos_embed 到 batch 上
+        pos_embed = jnp.tile(self.pos_embed, (B, 1, 1))
+        # 前 prefix 个 token 不 shuffle，假设 prefix = 2
+        prefix = 2
+        pos_embed_prefix = pos_embed[:, :prefix]
+        # 对后面的 image_seq_len 部分根据 orders 做 shuffle
+        pos_embed_postfix = self.shuffle(pos_embed[:, prefix: prefix + self.image_seq_len], orders)
+        pos_embed_combined = jnp.concatenate([pos_embed_prefix, pos_embed_postfix], axis=1)
+        # 同理 target aware pos embed
+        target_aware_pos_embed_postfix = self.shuffle(self.target_aware_pos_embed[:, prefix: prefix + self.image_seq_len], orders)
+
+        # 如果非采样阶段，则也对 embeddings 做 shuffle（除了第一个 token）
+        if not is_sampling:
+            emb_prefix = embeddings[:, :1]
+            emb_postfix = self.shuffle(embeddings[:, 1:], orders)
+            embeddings = jnp.concatenate([emb_prefix, emb_postfix], axis=1)
+
+        # 拼接 cls token：将 cls_token 展开到 batch 上，然后拼接到 embeddings 前
+        cls_tokens = jnp.tile(self.cls_token, (B, 1, 1))
+        x = jnp.concatenate([cls_tokens, embeddings], axis=1)
+
+        # 加上位置编码（取前 x.shape[1] 个 token 的 pos_embed）
+
+
+        x = x + pos_embed_combined[:, :x.shape[1], :]
+
+        # 加上 target-aware pos embed
+        # 这里构造一个 target aware pos embed：前 prefix-1 全零，后面 target aware 部分，再后面零补
+        zeros_prefix = jnp.zeros_like(x[:, :prefix-1, :])
+        zeros_suffix = jnp.zeros_like(x[:, -1:, :])
+        target_aware = jnp.concatenate([zeros_prefix, target_aware_pos_embed_postfix, zeros_suffix], axis=1)
+        x = x + target_aware[:, :x.shape[1], :]
+
+        # 生成 attn_mask（注意：在 Flax 中，一般要求 bias shape 为 [1, 1, seq_len, seq_len]）
+        attn_mask = self.attn_mask[:x.shape[1], :x.shape[1]]
+        attn_mask = attn_mask[None, None, :, :]  # broadcast 到 [B, num_heads, seq_len, seq_len]
+
+        # 对 condition_token 加上 timesteps_embeddings（取前 x.shape[1] 个）
+        condition_token = condition_token[:, None, :] + self.timesteps_embeddings[:, :x.shape[1], :]
+
+        # 如果开启 KV cache（例如在采样时），可能只处理最后一个 token（这里略）
+        # 依次通过 blocks
+        for block in self.blocks:
+            x,layer_cache = block(x, attn_mask=attn_mask, c=condition_token, deterministic=True#not ("dropout" in rngs)
+                      )
+        # 如果没有 KV cache，则去除 cls token，假设 prefix-1
+        x = x[:, prefix - 1:, :]
+        condition_token = condition_token[:, prefix - 1:, :]
+
+        # adaln_before_head
+        x = self.adaln_before_head(x, condition_token)
+        logits = self.lm_head(x)
+        if return_labels:
+            return logits, labels
+        return logits #, None
+
+
+
+
+
+
 
 
 
@@ -736,7 +913,7 @@ def init_cache(
 def main():
     # 构造一个简单的 config 字典
     config = {
-        "model": {
+        "models": {
             "generator": {
                 "hidden_size": 768,
                 "num_hidden_layers": 12,
@@ -759,11 +936,11 @@ def main():
 
     # 构造随机输入：input_ids（整数 token）和 condition（假设为 [B, 1]）
     batch_size = 2
-    image_seq_len = config["model"]["generator"]["image_seq_len"]
+    image_seq_len = config["models"]["generator"]["image_seq_len"]
     rng = jax.random.PRNGKey(0)
     sample_rng, dropout_rng = jax.random.split(rng)
-    input_ids = jax.random.randint(sample_rng, (batch_size, 0), 0, config["model"]["vq_model"]["codebook_size"])
-    condition = jax.random.randint(sample_rng, (batch_size, 1), 0, config["model"]["generator"]["condition_num_classes"])
+    input_ids = jax.random.randint(sample_rng, (batch_size, 0), 0, config["models"]["vq_model"]["codebook_size"])
+    condition = jax.random.randint(sample_rng, (batch_size, 1), 0, config["models"]["generator"]["condition_num_classes"])
 
     # 构造 rngs 字典
     rngs = {"dropout": dropout_rng, "sample": sample_rng,'params':sample_rng}

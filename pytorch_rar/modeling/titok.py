@@ -1,4 +1,4 @@
-"""This file contains the model definition of TiTok.
+"""This file contains the models definition of TiTok.
 
 Copyright (2024) Bytedance Ltd. and/or its affiliates
 

@@ -27,10 +27,11 @@ pip install -r requirements.txt
 # 2. Install requirements.
 pip install -U jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 pip install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install -U flax optax chex webdataset timm wandb
+pip install -U flax optax chex webdataset==0.2.99 timm wandb
 pip install einops  tensorflow matplotlib diffusers
 pip install gcsfs==4.51
 
+pip install omegaconf transformers open_clip_torch accelerate gdown huggingface-hub torch-fidelity
 
 
 

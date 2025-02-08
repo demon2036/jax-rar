@@ -1,55 +1,37 @@
 import argparse
-import asyncio
 import math
 import threading
-import time
 from functools import partial
 from pathlib import Path
-from typing import Any
 import orbax.checkpoint as ocp
-import PIL
-import einops
-import torch
 import tqdm
-from PIL import Image
-import numpy as np
 from flax.training import orbax_utils
 from jax._src.mesh import Mesh
 from jax.experimental import mesh_utils, multihost_utils
-from webdataset import TarWriter
 
-import demo_util
+from pytorch_rar import demo_util
 from huggingface_hub import hf_hub_download
 
-from jax_utils import CustomShardWriter, thread_write, send_file, get_remote_path
-from maskgit_vqgan import PretrainedTokenizer
+from utils.generate_utils import CustomShardWriter, thread_write, send_file, get_remote_path
+from models.maskgit_vqgan import PretrainedTokenizer
 from sample import RARConfig, sample
-from test import convert_vqgan_state_dict
-from rar import FlaxRAR, convert_torch_to_flax_rar, init_cache
-from utils.train_utils import create_pretrained_tokenizer
+from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
+from models.rar import FlaxRAR, convert_torch_to_flax_rar
+from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
 
 import jax
 # jax.config.update('jax_platform_name', 'cpu')
-import flax
-import jax.numpy as jnp
-import chex
 from jax.sharding import PartitionSpec as P
 
 from jax.experimental.shard_map import shard_map
-import webdataset as wds
-
-
-from PIL import Image
-
-
-
 
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     # local_dir='./'
-    local_dir='/root/'
+    local_dir= '../torch_model_weight'
+    # local_dir='/root/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -73,7 +55,7 @@ def init_model():
                     local_dir=local_dir
                     )
 
-    config = demo_util.get_config("configs/training/generator/rar.yaml")
+    config = demo_util.get_config("../pytorch_rar/configs/training/generator/rar.yaml")
     config.experiment.generator_checkpoint = f"{rar_model_size}.bin"
     config.model.generator.hidden_size = {"rar_b": 768, "rar_l": 1024, "rar_xl": 1280, "rar_xxl": 1408}[rar_model_size]
     config.model.generator.num_hidden_layers = {"rar_b": 24, "rar_l": 24, "rar_xl": 32, "rar_xxl": 40}[rar_model_size]
@@ -235,6 +217,6 @@ if __name__ == "__main__":
     parser.add_argument("--global-seed", type=int, default=2036)
     parser.add_argument("--batch-per-core", type=int, default=128)
     parser.add_argument("--num-samples", type=int, default=50000000)
-    jax.distributed.initialize()
+    # jax.distributed.initialize()
     main(parser.parse_args())
     # main(parser.parse_args())

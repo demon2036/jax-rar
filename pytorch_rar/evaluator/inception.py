@@ -1,4 +1,4 @@
-"""This file is for Inception model borrowed from torch metrics / fidelity.
+"""This file is for Inception models borrowed from torch metrics / fidelity.
 
 This file may have been modified by Bytedance Ltd. and/or its affiliates (“Bytedance's Modifications”).
 All Bytedance's Modifications are Copyright (year) Bytedance Ltd. and/or its affiliates. 

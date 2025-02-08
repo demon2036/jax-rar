@@ -1,4 +1,4 @@
-"""This file contains implementation for MaskGIT model.
+"""This file contains implementation for MaskGIT models.
 
 Copyright (2024) Bytedance Ltd. and/or its affiliates
 

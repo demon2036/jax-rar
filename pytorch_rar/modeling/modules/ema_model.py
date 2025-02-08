@@ -179,9 +179,9 @@ class EMAModel:
 
     def restore(self, parameters: Iterable[torch.nn.Parameter]) -> None:
         r"""Restores the parameters stored with the `store` method. Useful to validate
-          the model with EMA parameters without affecting the original optimization process.
+          the models with EMA parameters without affecting the original optimization process.
             Store the parameters before the `copy_to()` method. After validation (or
-              model saving), use this to restore the former parameters.
+              models saving), use this to restore the former parameters.
         
         Args:
             parameters: Iterable of `torch.nn.Parameter`; the parameters to be

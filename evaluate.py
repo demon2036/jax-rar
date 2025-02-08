@@ -1,12 +1,11 @@
 from functools import partial
-from functools import partial
 from typing import Any
 import chex
 import flax
 import jax
 import jax.numpy as jnp
-from maskgit_vqgan import PretrainedTokenizer
-from rar import FlaxRAR, init_cache
+from models.maskgit_vqgan import PretrainedTokenizer
+from models.rar import FlaxRAR, init_cache
 
 
 @chex.dataclass

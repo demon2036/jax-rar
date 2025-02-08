@@ -26,7 +26,7 @@ model:
         attn_drop: 0.1
         num_steps: 64
         class_label_dropout: 0.1
-        image_seq_len: ${model.vq_model.num_latent_tokens}
+        image_seq_len: ${models.vq_model.num_latent_tokens}
         condition_num_classes: 1000
 
         # sampling hyper-params

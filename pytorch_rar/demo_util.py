@@ -19,10 +19,10 @@ limitations under the License.
 import torch
 
 from omegaconf import OmegaConf
-from pytorch_rar.modeling import TiTok
-from pytorch_rar.modeling import TATiTok
-from pytorch_rar.modeling.maskgit import ImageBert, UViTBert
-from pytorch_rar.modeling import RAR
+from .modeling.titok import TiTok
+from .modeling.tatitok import TATiTok
+from .modeling.maskgit import ImageBert, UViTBert
+from .modeling.rar import RAR
 
 
 def get_config_cli():

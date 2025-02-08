@@ -23,7 +23,7 @@ class BaseModel(torch.nn.Module):
         save_function: Callable = None,
         state_dict: Optional[Dict[str, torch.Tensor]] = None,
     ):
-        """Saves a model and its configuration file to a directory.
+        """Saves a models and its configuration file to a directory.
 
         Args:
             save_directory: A string or os.PathLike, directory to which to save. 
@@ -32,7 +32,7 @@ class BaseModel(torch.nn.Module):
                 Useful on distributed training like TPUs when one need to replace `torch.save` by
                 another method. Can be configured with the environment variable `DIFFUSERS_SAVE_MODE`.
             state_dict: A dictionary from str to torch.Tensor, the state dictionary to save.
-                If `None`, the model's state dictionary will be saved.
+                If `None`, the models's state dictionary will be saved.
         """
         if os.path.isfile(save_directory):
             print(f"Provided path ({save_directory}) should be a directory, not a file")
@@ -59,13 +59,13 @@ class BaseModel(torch.nn.Module):
         strict_loading: bool = True,
         torch_dtype: Optional[torch.dtype] = None
     ):
-        r"""Instantiates a pretrained pytorch model from a pre-trained model configuration.
+        r"""Instantiates a pretrained pytorch models from a pre-trained models configuration.
 
-        The model is set in evaluation mode by default using `model.eval()` (Dropout modules are deactivated). To train
-        the model, you should first set it back in training mode with `model.train()`.
+        The models is set in evaluation mode by default using `models.eval()` (Dropout modules are deactivated). To train
+        the models, you should first set it back in training mode with `models.train()`.
 
         Args:
-            pretrained_model_path: A string or os.PathLike, a path to a *directory* or *file* containing model weights.
+            pretrained_model_path: A string or os.PathLike, a path to a *directory* or *file* containing models weights.
 
         Raises:
             ValueError: If pretrained_model_path does not exist.
@@ -84,7 +84,7 @@ class BaseModel(torch.nn.Module):
         else:
             raise ValueError(f"{pretrained_model_path} does not exist")
 
-        # Load model state from checkpoint.
+        # Load models state from checkpoint.
         checkpoint = torch.load(model_file, map_location="cpu")
         # Load state dictionary into self.
         msg = self.load_state_dict(checkpoint, strict=strict_loading)
@@ -98,7 +98,7 @@ class BaseModel(torch.nn.Module):
         elif torch_dtype is not None:
             self.to(torch_dtype)
 
-        # Set model in evaluation mode to deactivate DropOut modules by default.
+        # Set models in evaluation mode to deactivate DropOut modules by default.
         self.eval()
 
     def num_parameters(self, only_trainable: bool = False, exclude_embeddings: bool = False) -> int:

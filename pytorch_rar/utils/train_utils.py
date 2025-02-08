@@ -24,23 +24,44 @@ import glob
 from collections import defaultdict
 import open_clip
 
-from pytorch_rar.data import SimpleImageDataset, PretoeknizedDataSetJSONL
+# from pytorch_rar.data import SimpleImageDataset, PretoeknizedDataSetJSONL
+# import torch
+# from torch.utils.data import DataLoader
+# from omegaconf import OmegaConf
+# from torch.optim import AdamW
+# from pytorch_rar.utils.lr_schedulers import get_scheduler
+# from pytorch_rar.modeling import EMAModel, ReconstructionLoss_Stage1, ReconstructionLoss_Stage2, ReconstructionLoss_Single_Stage, MLMLoss, ARLoss
+# from pytorch_rar.modeling import TiTok, PretrainedTokenizer
+# from pytorch_rar.modeling import TATiTok
+# from pytorch_rar.modeling.maskgit import ImageBert, UViTBert
+# from pytorch_rar.modeling import RAR
+# from pytorch_rar.evaluator import VQGANEvaluator
+# from pytorch_rar.demo_util import sample_fn
+#
+# from imagenet_classes import imagenet_idx2classname
+# from pytorch_rar.utils.viz_utils import make_viz_from_samples, make_viz_from_samples_generation
+# from torchinfo import summary
+
+
+
+from ..data import SimpleImageDataset, PretoeknizedDataSetJSONL
 import torch
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 from torch.optim import AdamW
-from utils.lr_schedulers import get_scheduler
-from pytorch_rar.modeling import EMAModel, ReconstructionLoss_Stage1, ReconstructionLoss_Stage2, ReconstructionLoss_Single_Stage, MLMLoss, ARLoss
-from pytorch_rar.modeling import TiTok, PretrainedTokenizer
-from pytorch_rar.modeling import TATiTok
-from pytorch_rar.modeling.maskgit import ImageBert, UViTBert
-from pytorch_rar.modeling import RAR
-from pytorch_rar.evaluator import VQGANEvaluator
-from demo_util import sample_fn
+from ..utils.lr_schedulers import get_scheduler
+from ..modeling.modules import EMAModel, ReconstructionLoss_Stage1, ReconstructionLoss_Stage2, ReconstructionLoss_Single_Stage, MLMLoss, ARLoss
+from ..modeling.titok import TiTok, PretrainedTokenizer
+from ..modeling.tatitok import TATiTok
+from ..modeling.maskgit import ImageBert, UViTBert
+from ..modeling.rar import RAR
+from ..evaluator import VQGANEvaluator
+from ..demo_util import sample_fn
 
-from imagenet_classes import imagenet_idx2classname
-from utils.viz_utils import make_viz_from_samples, make_viz_from_samples_generation
+from pytorch_rar.imagenet_classes import imagenet_idx2classname
+from ..utils.viz_utils import make_viz_from_samples, make_viz_from_samples_generation
 from torchinfo import summary
+
 
 
 def get_config():
@@ -99,8 +120,8 @@ def create_clip_model():
 
 def create_model_and_loss_module(config, logger, accelerator,
                                  model_type="titok"):
-    """Creates TiTok model and loss module."""
-    logger.info("Creating model and loss module.")
+    """Creates TiTok models and loss module."""
+    logger.info("Creating models and loss module.")
     if model_type == "titok":
         model_cls = TiTok
         loss_cls = ReconstructionLoss_Stage2 if config.model.vq_model.finetune_decoder else ReconstructionLoss_Stage1
@@ -137,7 +158,7 @@ def create_model_and_loss_module(config, logger, accelerator,
         msg = model.load_state_dict(model_weight, strict=False)
         logger.info(f"loading weight from {config.experiment.init_weight}, msg: {msg}")
 
-    # Create the EMA model.
+    # Create the EMA models.
     ema_model = None
     if config.training.use_ema:
         ema_model = EMAModel(model.parameters(), decay=0.999,
@@ -544,7 +565,7 @@ def train_one_epoch(config, logger, accelerator,
                 batch_time_meter.reset()
                 data_time_meter.reset()
 
-            # Save model checkpoint.
+            # Save models checkpoint.
             if (global_step + 1) % config.experiment.save_every == 0:
                 save_path = save_checkpoint(
                     model, config.experiment.output_dir, accelerator, global_step + 1, logger=logger)
@@ -553,7 +574,7 @@ def train_one_epoch(config, logger, accelerator,
 
             # Generate images.
             if (global_step + 1) % config.experiment.generate_every == 0 and accelerator.is_main_process:
-                # Store the model parameters temporarily and load the EMA parameters to perform inference.
+                # Store the models parameters temporarily and load the EMA parameters to perform inference.
                 if config.training.get("use_ema", False):
                     ema_model.store(model.parameters())
                     ema_model.copy_to(model.parameters())
@@ -573,7 +594,7 @@ def train_one_epoch(config, logger, accelerator,
                 )
 
                 if config.training.get("use_ema", False):
-                    # Switch back to the original model parameters for training.
+                    # Switch back to the original models parameters for training.
                     ema_model.restore(model.parameters())
 
 
@@ -603,7 +624,7 @@ def train_one_epoch(config, logger, accelerator,
                         eval_log = {f'ema_eval/'+k: v for k, v in eval_scores.items()}
                         accelerator.log(eval_log, step=global_step + 1)
                     if config.training.get("use_ema", False):
-                        # Switch back to the original model parameters for training.
+                        # Switch back to the original models parameters for training.
                         ema_model.restore(model.parameters())
                 else:
                     # Eval for non-EMA.
@@ -779,7 +800,7 @@ def train_one_epoch_generator(
                 batch_time_meter.reset()
                 data_time_meter.reset()
 
-            # Save model checkpoint.
+            # Save models checkpoint.
             if (global_step + 1) % config.experiment.save_every == 0:
                 save_path = save_checkpoint(
                     model, config.experiment.output_dir, accelerator, global_step + 1, logger=logger)
@@ -788,7 +809,7 @@ def train_one_epoch_generator(
 
             # Generate images.
             if (global_step + 1) % config.experiment.generate_every == 0 and accelerator.is_main_process:
-                # Store the model parameters temporarily and load the EMA parameters to perform inference.
+                # Store the models parameters temporarily and load the EMA parameters to perform inference.
                 if config.training.get("use_ema", False):
                     ema_model.store(model.parameters())
                     ema_model.copy_to(model.parameters())
@@ -804,7 +825,7 @@ def train_one_epoch_generator(
                 )
 
                 if config.training.get("use_ema", False):
-                    # Switch back to the original model parameters for training.
+                    # Switch back to the original models parameters for training.
                     ema_model.restore(model.parameters())
 
             global_step += 1
@@ -866,10 +887,10 @@ def eval_reconstruction(
         original_images = torch.clamp(original_images, 0.0, 1.0)
         
         if isinstance(model_dict, dict): 
-            # For VQ model.
+            # For VQ models.
             evaluator.update(original_images, reconstructed_images.squeeze(2), model_dict["min_encoding_indices"])
         else:
-            # For VAE model.
+            # For VAE models.
             evaluator.update(original_images, reconstructed_images.squeeze(2), None)
             
     model.train()

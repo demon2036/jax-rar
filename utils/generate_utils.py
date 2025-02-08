@@ -54,14 +54,14 @@ def thread_write_vq(tokens, class_labels,siglip_features,dino_features, sink):
 
     tokens=np.array(tokens,dtype=np.int16)
     class_labels = np.array(class_labels)
-    siglip_features=np.array(siglip_features,dtype=np.int16)
-    dino_features=np.array(dino_features,dtype=np.int16)
+    siglip_features=np.array(siglip_features,dtype=np.float32)
+    dino_features=np.array(dino_features,dtype=np.float32)
 
     global counter
 
     for token, cls_label,siglip_feature,dino_feature in zip(tokens, class_labels,siglip_features,dino_features):
         # print(siglip_feature.shape,dino_feature.shape,token.dtype,cls_label.dtype,siglip_features.dtype,dino_features.dtype)
-        # print(token)
+        # print(cls_label)
         # print(type(token),type(cls_label),type(siglip_features),type(dino_feature))
 
         sink.write({
