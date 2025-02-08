@@ -5,7 +5,7 @@ SCRIPT_PATHS=("$@")
 
 
 
-
+export PYTHONPATH=..
 
 #echo "Array content: ${SCRIPT_PATHS[@]}"
 for script in "${SCRIPT_PATHS[@]}"; do
