@@ -216,6 +216,6 @@ if __name__ == "__main__":
     parser.add_argument("--global-seed", type=int, default=20360724)
     parser.add_argument("--batch-per-core", type=int, default=128)
     parser.add_argument("--num-samples", type=int, default=50000000)
-    # jax.distributed.initialize()
+    jax.distributed.initialize()
     main(parser.parse_args())
     # main(parser.parse_args())
