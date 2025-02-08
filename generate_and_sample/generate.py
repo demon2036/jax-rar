@@ -214,7 +214,7 @@ if __name__ == "__main__":
     # parser.add_argument("--per-device-batch", type=int, default=128)  #128
     parser.add_argument("--resume",  action="store_true", default=False)
 
-    parser.add_argument("--global-seed", type=int, default=2036)
+    parser.add_argument("--global-seed", type=int, default=20360724)
     parser.add_argument("--batch-per-core", type=int, default=128)
     parser.add_argument("--num-samples", type=int, default=50000000)
     # jax.distributed.initialize()
