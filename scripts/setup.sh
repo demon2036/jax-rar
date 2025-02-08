@@ -31,7 +31,7 @@ pip install -U flax optax chex webdataset==0.2.99 timm wandb
 pip install einops  tensorflow matplotlib diffusers
 pip install gcsfs==4.51
 
-pip install omegaconf transformers open_clip_torch accelerate gdown huggingface-hub torch-fidelity
+pip install omegaconf transformers open_clip_torch accelerate gdown huggingface-hub torch-fidelity torchinfo  tpu-info
 
 
 

@@ -16,7 +16,7 @@ from utils.generate_utils import CustomShardWriter, thread_write, send_file, get
 from models.maskgit_vqgan import PretrainedTokenizer
 from sample import RARConfig, sample
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
-from models.rar import FlaxRAR, convert_torch_to_flax_rar
+from models.rar import FlaxRAR, convert_torch_to_flax_rar, FlaxRARConfig
 from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
 
 import jax
@@ -29,9 +29,8 @@ from jax.experimental.shard_map import shard_map
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
-    # local_dir='./'
-    local_dir= '../torch_model_weight'
-    # local_dir='/root/'
+    # local_dir= '../'
+    local_dir= '/root/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -55,7 +54,7 @@ def init_model():
                     local_dir=local_dir
                     )
 
-    config = demo_util.get_config("../pytorch_rar/configs/training/generator/rar.yaml")
+    config = demo_util.get_config("./pytorch_rar/configs/training/generator/rar.yaml")
     config.experiment.generator_checkpoint = f"{rar_model_size}.bin"
     config.model.generator.hidden_size = {"rar_b": 768, "rar_l": 1024, "rar_xl": 1280, "rar_xxl": 1408}[rar_model_size]
     config.model.generator.num_hidden_layers = {"rar_b": 24, "rar_l": 24, "rar_xl": 32, "rar_xxl": 40}[rar_model_size]
@@ -69,17 +68,18 @@ def init_model():
     tokenizer = create_pretrained_tokenizer(config)
     generator = demo_util.get_rar_generator(config)
 
-    model = FlaxRAR(config=config)
+
+    flax_config=FlaxRARConfig(embed_dim=config.model.generator.hidden_size,
+                              depth=config.model.generator.num_hidden_layers,
+                              intermediate_size=config.model.generator.intermediate_size)
+
+    model = FlaxRAR(config=flax_config)
     model_params = convert_torch_to_flax_rar(generator.state_dict())
     tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
     tokenizer = PretrainedTokenizer(config=config_tokenizer)
 
     rar_config=RARConfig(hidden_size=config.model.generator.hidden_size,num_hidden_layers=config.model.generator.num_hidden_layers)
-    # print(tokenizer_params.keys())
-
     return model_params,tokenizer_params,model,tokenizer,rar_config
-
-
 
 
 

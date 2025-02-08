@@ -12,7 +12,7 @@ from huggingface_hub import hf_hub_download
 
 from models.maskgit_vqgan import PretrainedTokenizer
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
-from models.rar import FlaxRAR, convert_torch_to_flax_rar, init_cache
+from models.rar import FlaxRAR, convert_torch_to_flax_rar, init_cache, FlaxRARConfig
 from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
 
 import jax
@@ -174,7 +174,7 @@ def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     # local_dir= '../'
-    local_dir= '/root'
+    local_dir= '/root/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -190,7 +190,7 @@ def init_model():
     config_tokenizer = ConfigTokenizer()
 
     # download the maskgit-vq tokenizer
-    hf_hub_download(repo_id="fun-research/TiTok", filename=f"../torch_model_weight/maskgit-vqgan-imagenet-f16-256.bin",
+    hf_hub_download(repo_id="fun-research/TiTok", filename=f"maskgit-vqgan-imagenet-f16-256.bin",
                     local_dir=local_dir
                     )
     # download the rar generator weight
@@ -198,7 +198,7 @@ def init_model():
                     local_dir=local_dir
                     )
 
-    config = demo_util.get_config("../pytorch_rar/configs/training/generator/rar.yaml")
+    config = demo_util.get_config("./pytorch_rar/configs/training/generator/rar.yaml")
     config.experiment.generator_checkpoint = f"{rar_model_size}.bin"
     config.model.generator.hidden_size = {"rar_b": 768, "rar_l": 1024, "rar_xl": 1280, "rar_xxl": 1408}[rar_model_size]
     config.model.generator.num_hidden_layers = {"rar_b": 24, "rar_l": 24, "rar_xl": 32, "rar_xxl": 40}[rar_model_size]
@@ -212,7 +212,12 @@ def init_model():
     tokenizer = create_pretrained_tokenizer(config)
     generator = demo_util.get_rar_generator(config)
 
-    model = FlaxRAR(config=config)
+
+    flax_config=FlaxRARConfig(embed_dim=config.model.generator.hidden_size,
+                              depth=config.model.generator.num_hidden_layers,
+                              intermediate_size=config.model.generator.intermediate_size)
+
+    model = FlaxRAR(config=flax_config)
     model_params = convert_torch_to_flax_rar(generator.state_dict())
     tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
     tokenizer = PretrainedTokenizer(config=config_tokenizer)
@@ -287,9 +292,9 @@ def main3():
     # generated_image = np.array(reconstructed * 255.0,dtype=np.uint8)
     generated_image=np.array(sample_img)
     print(generated_image.shape)
+    create_npz_from_np('./test2',data)
     Image.fromarray(generated_image[0]).save(f"assets/rar_generated_{1}.png")
 
-    create_npz_from_np('./test2',data)
 
 
 

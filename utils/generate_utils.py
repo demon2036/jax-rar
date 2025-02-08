@@ -153,7 +153,23 @@ def send_file(keep_files, dst, rng, iter):
 
     return ckpt,send_file_threads
 
+def create_npz_from_np(sample_dir, samples, num=50_000):
+    """
+    Builds a single .npz file from a folder of .png samples.
+    """
+    # samples = []
+    # for i in tqdm(range(num), desc="Building .npz file from samples"):
+    #     sample_pil = Image.open(f"{sample_dir}/{i:06d}.png")
+    #     sample_np = np.asarray(sample_pil).astype(np.uint8)
+    #     samples.append(sample_np)
+    # samples = np.stack(samples)
+    num = samples.shape[0]
+    assert num >= 50000
 
-        #     # orbax_checkpointer = ocp.PyTreeCheckpointer()
-        #     save_args = orbax_utils.save_args_from_target(ckpt)
-        #     checkpointer.save(f'{dst}/resume.json', ckpt, save_args=save_args, force=True)
+    samples = samples[:num]
+
+    assert samples.shape == (num, samples.shape[1], samples.shape[2], 3)
+    npz_path = f"{sample_dir}.npz"
+    np.savez(npz_path, arr_0=samples)
+    print(f"Saved .npz file to {npz_path} [shape={samples.shape}].")
+    return npz_path

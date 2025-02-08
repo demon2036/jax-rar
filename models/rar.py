@@ -14,8 +14,8 @@ import optax
 import flax
 
 
-# dtype=jnp.bfloat16
-dtype=jnp.float32
+dtype=jnp.bfloat16
+# dtype=jnp.float32
 
 # ------------------------------
 # 辅助函数
