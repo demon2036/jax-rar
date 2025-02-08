@@ -3,10 +3,6 @@
 SCRIPT_PATHS=("$@")
 #echo "Array content: $1"
 
-
-
-
-#echo "Array content: ${SCRIPT_PATHS[@]}"
 for script in "${SCRIPT_PATHS[@]}"; do
     echo " $script"
     pkill -9 -f python

@@ -14,7 +14,7 @@ from huggingface_hub import hf_hub_download
 
 from utils.generate_utils import CustomShardWriter, thread_write, send_file, get_remote_path
 from models.maskgit_vqgan import PretrainedTokenizer
-from sample import RARConfig, sample
+from generate_and_sample.sample import RARConfig, sample
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
 from models.rar import FlaxRAR, convert_torch_to_flax_rar, FlaxRARConfig
 from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
