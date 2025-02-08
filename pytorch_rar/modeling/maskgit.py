@@ -33,8 +33,8 @@ from huggingface_hub import PyTorchModelHubMixin
 from omegaconf import OmegaConf
 from pathlib import Path
 
-from modeling.modules.base_model import BaseModel
-from modeling.modules.blocks import UViTBlock
+from pytorch_rar.modeling.modules.base_model import BaseModel
+from pytorch_rar.modeling.modules.blocks import UViTBlock
 
 
 class ImageBert(BaseModel, PyTorchModelHubMixin, tags=["arxiv:2406.07550", "image-generation"], repo_url="https://github.com/bytedance/1d-tokenizer", license="apache-2.0"):

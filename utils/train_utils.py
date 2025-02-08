@@ -24,19 +24,19 @@ import glob
 from collections import defaultdict
 import open_clip
 
-from data import SimpleImageDataset, PretoeknizedDataSetJSONL
+from pytorch_rar.data import SimpleImageDataset, PretoeknizedDataSetJSONL
 import torch
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 from torch.optim import AdamW
 from utils.lr_schedulers import get_scheduler
-from modeling.modules import EMAModel, ReconstructionLoss_Stage1, ReconstructionLoss_Stage2, ReconstructionLoss_Single_Stage, MLMLoss, ARLoss
-from modeling.titok import TiTok, PretrainedTokenizer
-from modeling.tatitok import TATiTok
-from modeling.maskgit import ImageBert, UViTBert
-from modeling.rar import RAR
-from evaluator import VQGANEvaluator
-from demo_util import get_titok_tokenizer, sample_fn
+from pytorch_rar.modeling import EMAModel, ReconstructionLoss_Stage1, ReconstructionLoss_Stage2, ReconstructionLoss_Single_Stage, MLMLoss, ARLoss
+from pytorch_rar.modeling import TiTok, PretrainedTokenizer
+from pytorch_rar.modeling import TATiTok
+from pytorch_rar.modeling.maskgit import ImageBert, UViTBert
+from pytorch_rar.modeling import RAR
+from pytorch_rar.evaluator import VQGANEvaluator
+from demo_util import sample_fn
 
 from imagenet_classes import imagenet_idx2classname
 from utils.viz_utils import make_viz_from_samples, make_viz_from_samples_generation

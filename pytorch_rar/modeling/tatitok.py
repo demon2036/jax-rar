@@ -15,12 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import torch
 from einops import rearrange
 
 from .titok import TiTok
-from modeling.modules.blocks import TATiTokDecoder
-from modeling.quantizer.quantizer import VectorQuantizer, DiagonalGaussianDistribution
+from pytorch_rar.modeling.modules.blocks import TATiTokDecoder
+from pytorch_rar.modeling.quantizer.quantizer import VectorQuantizer, DiagonalGaussianDistribution
 from omegaconf import OmegaConf
 
 from huggingface_hub import PyTorchModelHubMixin

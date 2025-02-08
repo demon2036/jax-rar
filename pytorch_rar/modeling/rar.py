@@ -25,11 +25,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from modeling.modules import BaseModel
+from pytorch_rar.modeling.modules import BaseModel
 from functools import partial
 from timm.layers import Mlp
-from typing import Optional
-import numpy as np
 import random
 
 # util function
