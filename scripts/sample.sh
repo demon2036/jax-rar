@@ -1,1 +1,1 @@
-python test_sample_sync.py ;
+python sampler.py ;
