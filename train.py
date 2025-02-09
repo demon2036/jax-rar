@@ -148,7 +148,7 @@ def main(configs):
                            # remote_model_path=filename, resume=resume
                            )
 
-        train_step=training_step
+
 
         fid_model = inception.InceptionV3(pretrained=True)
         fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
@@ -157,10 +157,10 @@ def main(configs):
 
 
 
-        training_step_pjit = jax.jit(train_step,
+        training_step_pjit = jax.jit(training_step,
                                      donate_argnums=(0,),
                                      out_shardings=(train_state_sharding, None),
-                                     # in_shardings=(train_state_sharding, sharding,),
+                                     in_shardings=(train_state_sharding, sharding,),
                                      )
 
 

@@ -32,7 +32,6 @@ from state.train_state import TrainState
 
 def training_step(state: TrainState, batch: ArrayTree) :  # -> tuple[TrainState, ArrayTree]
     def loss_fn(params: ArrayTree) -> ArrayTree:
-
         apply_params={'model':params,'ref_model':state.ref_model_params}
         metrics = state.apply_fn({"params": apply_params}, *batch, det=False, rngs=rngs,)
         metrics = jax.tree_map(jnp.mean, metrics)
