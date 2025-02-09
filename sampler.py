@@ -211,7 +211,7 @@ class Sampler:
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
-        self.rng=rng = jax.random.PRNGKey(0)
+        self.rng=rng = jax.random.PRNGKey(42)
         sample_rng, dropout_rng = jax.random.split(rng)
         self.sample_rng = jax.random.split(sample_rng, jax.device_count())
         physical_mesh = mesh_utils.create_device_mesh((jax.device_count(),))
@@ -247,6 +247,7 @@ class Sampler:
 
     def compute_array_statistics(self,x):
         data=x
+        print(data)
         images = []
         for img in tqdm.tqdm(data):
             img=PIL.Image.fromarray(img)
@@ -283,7 +284,7 @@ class Sampler:
 
     def sample(self,params,save_npz):
         # 构造 rngs 字典
-        sample_rng=jax.random.split(self.sample_rng,jax.device_count())
+        sample_rng=self.sample_rng
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
