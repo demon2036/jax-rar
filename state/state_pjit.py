@@ -23,7 +23,6 @@ from orbax.checkpoint._src.handlers.standard_checkpoint_handler import StandardR
 #     get_partition_rules_caformer
 import os
 import jax.numpy as jnp
-from orbax.checkpoint.checkpoint_utils_test import ArrayRestoreArgs
 
 from convert_model_torch_to_flax.convert_rar_torch_to_flax import convert_torch_to_flax_rar
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
@@ -40,7 +39,7 @@ def resume_checkpoint(pretrained_ckpt,state_shapes,train_state_sharding):
     checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
     ckpt = {'models': state_shapes}
 
-    def set_sharding(sharding) -> ArrayRestoreArgs:
+    def set_sharding(sharding) -> ocp.ArrayRestoreArgs:
         return ocp.ArrayRestoreArgs(sharding=sharding)
 
     restore_args = {'models': jax.tree_util.tree_map(set_sharding, train_state_sharding)}
