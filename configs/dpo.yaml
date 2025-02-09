@@ -40,11 +40,9 @@ train_state:
     config:
       target: 'models.FlaxRARConfig'
       kwargs:
-#        embed_dim: 1408
-        embed_dim: 16
-        depth: 1
-#        intermediate_size: 6144
-        intermediate_size: 1
+        embed_dim: 1408
+        depth: 40
+        intermediate_size: 6144
 
   train_module:
     target: 'train_modules.TrainModule'
