@@ -108,10 +108,11 @@ class TrainModule(nn.Module):
         loss=-jax.nn.log_sigmoid(self.beta * logratios_delta).mean()
         chosen_rewards=self.beta * chosen_logratios
         rejected_rewards = self.beta * rejected_logratios
+        reward_accuracies = (chosen_rewards > rejected_rewards).astype(jnp.float32)
 
         # print(chosen_rewards.shape)
 
-        return {'loss':loss,'chosen_rewards':chosen_rewards,'rejected_rewards':rejected_rewards}
+        return {'loss':loss,'chosen_rewards':chosen_rewards.mean(),'rejected_rewards':rejected_rewards.mean(),'reward_accuracies':reward_accuracies.mean()}
         # return self.model(tokens, det=det)
 
         # loss = self.criterion((logits := self.model(images, det=det)), labels)

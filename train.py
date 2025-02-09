@@ -174,6 +174,7 @@ def main(configs):
                 print(metrics['loss'].sharding)
                 print(metrics['chosen_rewards'].sharding)
                 print(metrics['rejected_rewards'].sharding)
+                print(metrics)
                 # print(state)
             break
 
