@@ -60,7 +60,6 @@ def get_torch_model_from_rar_size(rar_model_size='rar_xxl'):
     # local_dir= '../'
     local_dir= '/root/'
     # local_dir= 'torch_model_weight/'
-wei
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
         num_resolutions = 5
