@@ -171,9 +171,9 @@ def main(configs):
 
                 state, metrics = training_step_pjit(state, batch, )
 
-                print(metrics['loss'])
-                print(metrics['chosen_rewards'])
-                print(metrics['rejected_rewards'])
+                print(metrics['loss'].sharding)
+                print(metrics['chosen_rewards'].sharding)
+                print(metrics['rejected_rewards'].sharding)
                 # print(state)
             break
 
