@@ -247,7 +247,6 @@ class Sampler:
 
     def compute_array_statistics(self,x):
         data=x
-        print(data)
         images = []
         for img in tqdm.tqdm(data):
             img=PIL.Image.fromarray(img)
@@ -284,7 +283,7 @@ class Sampler:
 
     def sample(self,params,save_npz):
         # 构造 rngs 字典
-        sample_rng=self.sample_rng
+        sample_rng=jax.random.split(self.sample_rng,jax.device_count())
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
