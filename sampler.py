@@ -225,7 +225,7 @@ class Sampler:
         ),
             out_specs=P('dp')
         )
-        self.sample_jit = jax.jit(sample_fn)
+        self.sample_jit = jax.jit(sample_fn,out_shardings=NamedSharding(mesh,P(None)))
 
         self.fid_model=fid_model
         self.fid_model_params=fid_model_params
