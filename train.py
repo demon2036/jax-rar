@@ -281,6 +281,6 @@ if __name__ == "__main__":
     yaml = read_yaml(args.yaml_path)
 
     yaml = preprocess_config(yaml)
-    jax.distributed.initialize()
+    # jax.distributed.initialize()
     print(yaml)
     main(yaml)
