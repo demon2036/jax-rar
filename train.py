@@ -17,22 +17,18 @@ from __future__ import annotations
 
 import argparse
 import os
-
-# os.environ['GOPEN_VERBOSE'] = '1'
+from functools import partial
 
 import jax
-# jax.distributed.initialize()
-
-import time
-
+import jax.numpy as jnp
+import jax.tree_util as jtu
 import numpy as np
-import torch
 import tqdm
-import wandb
-from flax.training import orbax_utils
+from flax.linen import partitioning as nn_partitioning
 from jax import NamedSharding
 from jax._src.mesh import Mesh
 from jax._src.partition_spec import PartitionSpec
+from jax.sharding import PartitionSpec as P
 from torch.utils.data import DataLoader
 
 from dataset.dataset import create_dataloaders
@@ -42,14 +38,11 @@ from state.state_pjit import init_state, get_jax_tokenizer
 from training import training_step
 # from test_dataset_fork import create_dataloaders
 # from training_pjit import TrainState
-from utils.utils import AverageMeter, read_yaml, preprocess_config, save_checkpoint_in_background, \
-    save_checkpoint_in_background2, match_partition_rules, get_jax_mesh2
+from utils.utils import AverageMeter, read_yaml, preprocess_config, get_jax_mesh2
 
-import jax.tree_util as jtu
-from functools import partial
-import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P
-from flax.linen import partitioning as nn_partitioning
+
+# os.environ['GOPEN_VERBOSE'] = '1'
+# jax.distributed.initialize()
 
 
 def _build_global_shape_and_sharding(

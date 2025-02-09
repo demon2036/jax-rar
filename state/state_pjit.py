@@ -134,7 +134,7 @@ def load_pretrain(pretrained_model='convnext_base.fb_in1k', default_params=None)
     model_jax_params=get_torch_model_from_rar_size(pretrained_model)
 
     model_jax_params = jax.tree_util.tree_map(jnp.asarray, model_jax_params)
-    return {'models': model_jax_params}
+    return {'model': model_jax_params}
 
 
 def create_train_state2(train_state_config,
