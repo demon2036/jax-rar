@@ -17,7 +17,7 @@ from models.maskgit_vqgan import PretrainedTokenizer
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
 from models.rar import FlaxRAR, convert_torch_to_flax_rar, init_cache, FlaxRARConfig
 from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
-
+from jax.experimental.multihost_utils import process_allgather
 import jax
 # jax.config.update('jax_platform_name', 'cpu')
 import flax
@@ -237,7 +237,7 @@ class Sampler:
         ),
             out_specs=P('dp')
         )
-        self.sample_jit = jax.jit(sample_fn,out_shardings=NamedSharding(mesh,P(None)))
+        self.sample_jit = jax.jit(sample_fn,)#out_shardings=NamedSharding(mesh,P(None))
 
         self.fid_model=fid_model
         self.fid_model_params=fid_model_params
@@ -254,7 +254,7 @@ class Sampler:
             # out_specs=P(None),check_rep=False
         )
 
-        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,out_shardings=NamedSharding(mesh,P(None)))
+        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,)
 
 
     def compute_array_statistics(self,x):
@@ -273,6 +273,7 @@ class Sampler:
         act = []
         for i in tqdm.tqdm(range(num_batches)):
             x = images[i * self.batch_size: i * self.batch_size + self.batch_size]
+            x=process_allgather(x)
             x = np.asarray(x)
             x = 2 * x - 1
             pred = self.fid_apply_fn_jit(jax.lax.stop_gradient(x),self.fid_model_params)
@@ -301,6 +302,7 @@ class Sampler:
         # iters=10
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
+            sample_img=process_allgather(sample_img)
             data.append(np.array(sample_img))
 
         data = np.concatenate(data, axis=0)
