@@ -221,14 +221,16 @@ def create_train_state2(train_state_config,
             print(f'{grad_accum_steps=}')
             grad_accum = jax.tree_map(jnp.zeros_like, params)
 
+        model_params = params['model']
+
         state = TrainState.create(
             apply_fn=module.apply,
-            params=params,
-            ref_model_params=copy.deepcopy(params),
+            params=model_params,
+            ref_model_params=copy.deepcopy(model_params),
             tx=tx,
             dropout_rng=jax.random.PRNGKey(train_state_config['dropout_seed']),
             ema_decay=train_state_config['ema_decay'],
-            ema_params=copy.deepcopy(params) if train_state_config['ema_decay'] > 0 else None,
+            ema_params=copy.deepcopy(model_params) if train_state_config['ema_decay'] > 0 else None,
             micro_step=0,
             micro_in_mini=grad_accum_steps,
             grad_accum=grad_accum if grad_accum_steps > 1 else None,
