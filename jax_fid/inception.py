@@ -49,7 +49,11 @@ class InceptionV3(nn.Module):
             self.num_classes_ = self.num_classes
 
     @nn.compact
-    def __call__(self, x, train=False, rng=jax.random.PRNGKey(0)):
+    def __call__(self, x, train=False, rng=None):
+
+        if rng is None:
+            rng = jax.random.PRNGKey(0)
+
         """
         Args:
             x (tensor): Input image, shape [B, H, W, C].

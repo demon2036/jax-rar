@@ -116,7 +116,6 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             # guidance_scale = 8.0,
             # scale_pow = 1.2,
             # randomize_temperature=1.02
-
         guidance_scale = 1.5,
         scale_pow = 1.0,
         randomize_temperature = 1.0

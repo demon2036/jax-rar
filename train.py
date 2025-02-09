@@ -33,13 +33,12 @@ from torch.utils.data import DataLoader
 
 from dataset.dataset import create_dataloaders
 from jax_fid import inception
+
+
 from sampler import Sampler
 from state.state_pjit import init_state, get_jax_tokenizer
 from training import training_step
-# from test_dataset_fork import create_dataloaders
-# from training_pjit import TrainState
 from utils.utils import AverageMeter, read_yaml, preprocess_config, get_jax_mesh2
-
 
 # os.environ['GOPEN_VERBOSE'] = '1'
 # jax.distributed.initialize()
@@ -266,6 +265,6 @@ if __name__ == "__main__":
     yaml = read_yaml(args.yaml_path)
 
     yaml = preprocess_config(yaml)
-    # jax.distributed.initialize()
+    jax.distributed.initialize()
     print(yaml)
     main(yaml)
