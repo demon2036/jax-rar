@@ -124,19 +124,9 @@ def main(configs):
     sharding = jtu.tree_map(lambda p: NamedSharding(mesh, p), data_spec)
 
 
-    print(f'{mesh=}')
-    # for _ in tqdm.tqdm(range(0,100)):
-    #     data=next(train_dataloader_iter)
-    #     jax.tree_util.tree_map(lambda x: print(x.shape, x.max(), x.min(),end=' \n'), data)
-    #     print()
-
-
-
 
     train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'],grad_accum=grad_accum_steps)
     train_dataloader_iter=iter(train_dataloader)
-
-
 
 
     logical_axis_rules = [
@@ -176,7 +166,7 @@ def main(configs):
                                      )
 
 
-
+        print(state.ema_params.keys())
         sampler.sample_and_eval(state.ema_params['params']['model'])
 
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
@@ -196,7 +186,7 @@ def main(configs):
                 # print(get_cos_sim(data[-1],data[1]))
 
 
-                batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), data)
+                batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), next(train_dataloader_iter))
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
 
                 # print(batch[0].shape,batch[0].sharding)
