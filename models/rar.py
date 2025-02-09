@@ -101,7 +101,7 @@ class AttentionRAR(nn.Module):
         if cache is not None:
             end_index = cache['end_index'][0]
             print(cache['v'].shape,v.shape)
-            b,n,d=v.shape
+            b,*_=v.shape
 
             slice_indices = (0, 0, end_index , 0)
             v = jax.lax.dynamic_update_slice(
