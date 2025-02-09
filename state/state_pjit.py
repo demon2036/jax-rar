@@ -54,6 +54,9 @@ def resume_checkpoint(pretrained_ckpt,state_shapes,train_state_sharding):
 def get_torch_model_from_rar_size(rar_model_size='rar_xxl'):
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     # rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
+
+    assert rar_model_size in ["rar_b", "rar_l", "rar_xl", "rar_xxl"]
+
     # local_dir= '../'
     local_dir= '/root/'
 
