@@ -164,7 +164,7 @@ def main(configs):
                                      )
 
 
-        sampler.sample_and_eval(state.ema_params)
+        # sampler.sample_and_eval(state.ema_params)
 
         train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
         train_dataloader_iter = iter(train_dataloader)

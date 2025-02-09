@@ -21,7 +21,7 @@ tp: 1
 dataset:
   train_batch_size: 256
   train_loader_workers: 20
-  train_dataset_shards: "$GCS_DATASET_DIR/imagenet-vq/shards-{00000..00003}.tar"
+  train_dataset_shards: "$GCS_DATASET_DIR/imagenet-vq/shards-{00000..00503}.tar"
   shuffle_seed: 10
 
 
