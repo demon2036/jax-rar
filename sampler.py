@@ -114,7 +114,7 @@ class RARConfig:
 
 def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size=1,
             guidance_scale = 8.0,
-            scale_pow = 1.2,
+            scale_pow = 0.0,
             randomize_temperature=1.02
             ):
     image_seq_len = 256
