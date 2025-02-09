@@ -36,7 +36,9 @@ from jax._src.partition_spec import PartitionSpec
 from torch.utils.data import DataLoader
 
 from dataset.dataset import create_dataloaders
-from state.state_pjit import init_state
+from jax_fid import inception
+from sampler import Sampler
+from state.state_pjit import init_state, get_jax_tokenizer
 from training import training_step
 # from test_dataset_fork import create_dataloaders
 # from training_pjit import TrainState
@@ -156,7 +158,7 @@ def main(configs):
     with mesh, nn_partitioning.axis_rules(logical_axis_rules):
         pass
 
-        state = init_state(configs['train_state'],
+        state,init_step,train_state_sharding,rar_config,model = init_state(configs['train_state'],
                            warmup_steps=warmup_steps,
                            training_steps=training_steps,
                            mesh=mesh,
@@ -167,7 +169,10 @@ def main(configs):
 
         train_step=training_step
 
-
+        fid_model = inception.InceptionV3(pretrained=True)
+        fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
+        tokenizer,tokenizer_params=get_jax_tokenizer()
+        sampler = Sampler(model, tokenizer, tokenizer_params, rar_config, 128, fid_model, fid_model_params)
 
 
 
@@ -176,7 +181,11 @@ def main(configs):
                                      # out_shardings=(train_state_sharding, None),
                                      # in_shardings=(train_state_sharding, sharding,),
                                      )
-        init_step=1
+
+
+
+        sampler.sample_and_eval(state.ema_params['params']['model'])
+
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
             for _ in range(grad_accum_steps):
                 # batch = jax.tree_util.tree_map(lambda x: jax.make_array_from_process_local_data(sharding,np.asarray(x))  , next(train_dataloader_iter))

@@ -1,0 +1,113 @@
+
+output_dir: $GCS_MODEL_DIR/planb/ablation/data/pt
+name: caformer-xl-192-3step-500ep-sit-5step
+project: jax-adv-image-net-data
+steps: 1281167
+training_epoch: 500
+warmup_epoch: 20
+log_interval: 100
+eval_epoch: 10
+grad_accum_steps: 1
+#train_fn: training_step_kl
+dp: -1
+fsdp: 1
+tp: 1
+#resume: True
+
+
+
+# No Valid data shard . Valid diretly by openai FID samples
+
+dataset:
+  train_batch_size: 16
+  train_loader_workers: 20
+  train_dataset_shards: "$GCS_DATASET_DIR/imagenet-vq/shards-{00000..00003}.tar"
+  shuffle_seed: 10
+
+
+#  train_dataset_shards: "$GCS_DATASET_DIR/imagenet-1k-wds/imagenet1k-train-{0000..1023}.tar"
+#  valid_batch_size: 4096
+#  valid_loader_workers: 10
+#  valid_dataset_shards: "$GCS_DATASET_DIR/imagenet-1k-wds/imagenet1k-validation-{00..63}.tar"
+#    ['$GCS_MODEL_DIR/imagenet-generated-100steps-cfg1.0-eta0.0/shards-{00000..12799}.tar']
+#    ['$GCS_MODEL_DIR/imagenet-generated-sit-250steps-50m/shards-{00000..05983}.tar']
+
+
+
+train_state:
+  model:
+    target: 'models.FlaxRAR'
+    config:
+      target: 'models.FlaxRARConfig'
+      kwargs:
+#        embed_dim: 1408
+        embed_dim: 16
+        depth: 1
+#        intermediate_size: 6144
+        intermediate_size: 1
+
+  train_module:
+    target: 'train_modules.TrainModule'
+
+
+  optimizer:
+    target: 'lamb'
+    optimizer_kwargs:
+      learning_rate: 1.0e-3
+      init_value: 1.0e-6
+      end_learning_rate: 1.0e-5
+      weight_decay: 0.05
+      b1: 0.9
+      b2: 0.99
+
+
+  grad_accum_steps: 1
+  init_seed: 1
+  mixup_seed: 1
+  dropout_seed: 1
+  ema_decay: 0.9998
+  pretrained_ckpt: ''
+
+
+
+#train_state:
+#  train_module:
+#    target: 'train_modules.TrainAdvModule2'
+#    mixup: 0.8
+#    cutmix: 1.0
+#    criterion: ce
+#    label_smoothing: 0.1
+#    train_adv_step: 3
+#    train_adv_step_size: 8/3 / 255
+#
+#
+#  models:
+#    target: 'models.CAFormer'
+#    model_kwargs:
+#      depths: [8,8,24,8]
+#      dims: [ 256, 512, 768,1536]
+#      v_norm: False
+#
+#  optimizer:
+#    target: 'lamb'
+#    optimizer_kwargs:
+#      learning_rate: 1.0e-3
+#      init_value: 1.0e-6
+#      end_learning_rate: 1.0e-5
+#      weight_decay: 0.05
+#      b1: 0.9
+#      b2: 0.99
+#  grad_accum_steps: 1
+#  init_seed: 1
+#  mixup_seed: 1
+#  dropout_seed: 1
+#  ema_decay: 0.9998
+#  pretrained_ckpt: '$GCS_MODEL_DIR/planb/ablation/standard/caformer-xl-48-standard-300ep-mix0.9-ema'
+#
+#
+#restore_state:
+#  grad_accum_steps: 1
+#  optimizer:
+#      target: 'lion'
+#      clip_grad: None
+#      optimizer_kwargs:
