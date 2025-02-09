@@ -34,11 +34,11 @@ from torch.utils.data import DataLoader
 from dataset.dataset import create_dataloaders
 from jax_fid import inception
 
-
 from sampler import Sampler
 from state.state_pjit import init_state, get_jax_tokenizer
 from training import training_step
 from utils.utils import AverageMeter, read_yaml, preprocess_config, get_jax_mesh2
+
 
 # os.environ['GOPEN_VERBOSE'] = '1'
 # jax.distributed.initialize()
@@ -85,7 +85,6 @@ def evaluate(state: TrainState, dataloader: DataLoader, validation_adv_step_jite
 
 
 def main(configs):
-
     training_steps = configs['steps'] * configs['training_epoch'] // configs['dataset']['train_batch_size']
     warmup_steps = configs['steps'] * configs['warmup_epoch'] // configs['dataset']['train_batch_size']
     eval_interval = configs['steps'] * configs['eval_epoch'] // configs['dataset']['train_batch_size']
@@ -93,9 +92,6 @@ def main(configs):
     log_interval = configs['log_interval']
     grad_accum_steps = configs['train_state'].get('grad_accum_steps', 1)
     resume = configs.get('resume', False)
-
-
-
 
     # os.environ['JAX_PLATFORMS']='cpu'
     # os.environ["XLA_FLAGS"] = '--xla_force_host_platform_device_count=8'
@@ -122,11 +118,6 @@ def main(configs):
     print(data_spec)
     sharding = jtu.tree_map(lambda p: NamedSharding(mesh, p), data_spec)
 
-
-
-
-
-
     logical_axis_rules = [
         ['batch', ['dp', 'fsdp']],
         ['activation_embed', 'mp'],
@@ -139,30 +130,25 @@ def main(configs):
     with mesh, nn_partitioning.axis_rules(logical_axis_rules):
         pass
 
-        state,init_step,train_state_sharding,rar_config,model = init_state(configs['train_state'],
-                           warmup_steps=warmup_steps,
-                           training_steps=training_steps,
-                           mesh=mesh,
-                           # restore_state_config=configs[
-                           #     'restore_state'] if 'restore_state' in configs else None,
-                           # remote_model_path=filename, resume=resume
-                           )
-
-
+        state, init_step, train_state_sharding, rar_config, model = init_state(configs['train_state'],
+                                                                               warmup_steps=warmup_steps,
+                                                                               training_steps=training_steps,
+                                                                               mesh=mesh,
+                                                                               # restore_state_config=configs[
+                                                                               #     'restore_state'] if 'restore_state' in configs else None,
+                                                                               # remote_model_path=filename, resume=resume
+                                                                               )
 
         fid_model = inception.InceptionV3(pretrained=True)
         fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
-        tokenizer,tokenizer_params=get_jax_tokenizer()
+        tokenizer, tokenizer_params = get_jax_tokenizer()
         sampler = Sampler(model, tokenizer, tokenizer_params, rar_config, 128, fid_model, fid_model_params)
-
-
 
         training_step_pjit = jax.jit(training_step,
                                      donate_argnums=(0,),
                                      out_shardings=(train_state_sharding, None),
                                      in_shardings=(train_state_sharding, sharding,),
                                      )
-
 
         # sampler.sample_and_eval(state.ema_params)
 
@@ -183,9 +169,11 @@ def main(configs):
                 batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), next(train_dataloader_iter))
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
 
+                state, metrics = training_step_pjit(state, batch, )
 
-                state, metrics = training_step_pjit(state, batch,)
-                print(metrics)
+                print(metrics['loss'])
+                print(metrics['chosen_rewards'])
+                print(metrics['rejected_rewards'])
                 # print(state)
             break
 

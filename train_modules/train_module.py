@@ -72,7 +72,7 @@ class TrainModule(nn.Module):
         rejected_ids=rejected_token
 
 
-        jax.debug.print("{bar}  {pair_label} {labels}", bar=mask_sin,pair_label=pair_label ,labels=labels)
+        # jax.debug.print("{bar}  {pair_label} {labels}", bar=mask_sin,pair_label=pair_label ,labels=labels)
         # print(f'{rejected_token.shape=}')
 
         chosen_logits = self.model.train_dpo(tokens, labels)
