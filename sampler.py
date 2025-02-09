@@ -111,6 +111,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             randomize_temperature=1.02
             ):
     image_seq_len = 256
+    guidance_scale = 4.0,
 
     def choice(logits,key):
         logits=logits/randomize_temperature
