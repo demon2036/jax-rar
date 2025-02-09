@@ -273,10 +273,11 @@ class Sampler:
         act = []
         for i in tqdm.tqdm(range(num_batches)):
             x = images[i * self.fid_eval_batch_size: i * self.fid_eval_batch_size + self.fid_eval_batch_size]
-            x=process_allgather(x)
+
             x = np.asarray(x)
             x = 2 * x - 1
             pred = self.fid_apply_fn_jit(jax.lax.stop_gradient(x),self.fid_model_params)
+            pred = process_allgather(pred)
             act.append(pred.squeeze(axis=1).squeeze(axis=1))
         act = jnp.concatenate(act, axis=0)
 
