@@ -6,7 +6,6 @@ import PIL
 import tqdm
 from PIL import Image
 import numpy as np
-from jax._src.mesh import Mesh
 from jax.experimental import mesh_utils
 
 from jax_fid import fid, inception
@@ -23,7 +22,7 @@ import jax
 import flax
 import jax.numpy as jnp
 import chex
-from jax.sharding import PartitionSpec as P
+from jax.sharding import PartitionSpec as P ,NamedSharding,Mesh
 
 from jax.experimental.shard_map import shard_map
 
@@ -243,7 +242,7 @@ class Sampler:
             # out_specs=P(None),check_rep=False
         )
 
-        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,out_shardings=None)
+        self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,out_shardings=NamedSharding(mesh,P(None)))
 
 
     def compute_array_statistics(self,x):
