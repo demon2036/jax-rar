@@ -171,35 +171,18 @@ def main(configs):
 
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
             for _ in range(grad_accum_steps):
-                # batch = jax.tree_util.tree_map(lambda x: jax.make_array_from_process_local_data(sharding,np.asarray(x))  , next(train_dataloader_iter))
-
                 # def get_cos_sim(image_features, labels):
                 #     sim = torch.nn.CosineSimilarity(dim=-1)(image_features.unsqueeze(1), image_features.unsqueeze(0))
                 #     sim = (sim + 1) / 2
                 #     label_mask = labels[:, None] != labels[None, :]
                 #     mask_sin = sim * label_mask
                 #     return mask_sin
-                #
-                #
                 # data=next(train_dataloader_iter)
-                #
                 # print(get_cos_sim(data[-1],data[1]))
-
 
                 batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), next(train_dataloader_iter))
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
 
-                # print(batch[0].shape,batch[0].sharding)
-                # batch = jtu.tree_map(go_jit, batch)
-                # images, labels = batch
-                # print(f'{images.shape=}   {images.addressable_data(0).shape=}')
-                # jax.debug.visualize_array_sharding(labels,max_width=200)
-                # di=flax.traverse_util.flatten_dict(state.params,sep='.')
-                # print(di.keys())
-                # jax.debug.visualize_array_sharding(di['models.MetaFormerStage_2.MetaFormerBlock_7.mlp.fc1.kernel'])
-                # print(jax.devices())
-                # while True:
-                #     pass
 
                 state, metrics = training_step_pjit(state, batch,)
                 print(metrics)
