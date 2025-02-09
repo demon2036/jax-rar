@@ -241,7 +241,7 @@ class Sampler:
 
         self.fid_model=fid_model
         self.fid_model_params=fid_model_params
-        self.fid_eval_batch_size=1024
+        self.fid_eval_batch_size=2048
 
         def fid_apply_fn(x,params):
 
@@ -269,10 +269,10 @@ class Sampler:
             img = np.array(img,dtype=np.float32) / 255.0
             images.append(img)
 
-        num_batches = int(len(images) // self.batch_size)
+        num_batches = int(len(images) // self.fid_eval_batch_size)
         act = []
         for i in tqdm.tqdm(range(num_batches)):
-            x = images[i * self.batch_size: i * self.batch_size + self.batch_size]
+            x = images[i * self.fid_eval_batch_size: i * self.fid_eval_batch_size + self.fid_eval_batch_size]
             x=process_allgather(x)
             x = np.asarray(x)
             x = 2 * x - 1
@@ -303,6 +303,7 @@ class Sampler:
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
             sample_img=process_allgather(sample_img)
+            print(sample_img.shape)
             data.append(np.array(sample_img))
 
         data = np.concatenate(data, axis=0)
