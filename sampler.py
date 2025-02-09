@@ -276,7 +276,7 @@ class Sampler:
 
     def computer_fid(self,x):
         mu1, sigma1 = self.compute_array_statistics(x)
-        mu2, sigma2 = fid.compute_statistics("VIRTUAL_imagenet256_labeled.npz", None,None,None,None)
+        mu2, sigma2 = fid.compute_statistics("/root/VIRTUAL_imagenet256_labeled.npz", None,None,None,None)
         fid_score = fid.compute_frechet_distance(mu1, mu2, sigma1, sigma2, eps=1e-6)
         print('Fid:', fid_score)
         return fid_score
@@ -287,8 +287,8 @@ class Sampler:
         sample_rng=self.sample_rng
         data = []
         # iters = 100
-        # iters = 51200//jax.device_count()
-        iters=10
+        iters = 51200//(jax.device_count()*self.batch_size)
+        # iters=10
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
             data.append(np.array(sample_img))
