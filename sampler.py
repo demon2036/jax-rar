@@ -131,7 +131,8 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
     max_cache_length = 256
-    cache = init_cache(config, num_samples * 2 if guidance_scale != 0 else num_samples,
+    cache = init_cache(config, num_samples,
+                       # num_samples * 2 if guidance_scale != 0 else num_samples,
                        max_cache_length=max_cache_length, dtype=jnp.bfloat16)
 
     attn_mask = jnp.zeros((1, max_cache_length), dtype=jnp.int32)
