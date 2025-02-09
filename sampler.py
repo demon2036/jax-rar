@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any
 
 import PIL
+import torch
 import tqdm
 from PIL import Image
 import numpy as np
@@ -77,8 +78,14 @@ def init_model():
                               intermediate_size=config.model.generator.intermediate_size)
 
     model = FlaxRAR(config=flax_config)
-    model_params = convert_torch_to_flax_rar(generator.state_dict())
-    tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
+    # model_params = convert_torch_to_flax_rar(generator.state_dict())
+    # tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
+
+
+    model_params = convert_torch_to_flax_rar(torch.load(config.experiment.generator_checkpoint ))
+    tokenizer_params = convert_vqgan_state_dict(torch.load(config.model.vq_model.pretrained_tokenizer_weight))
+
+
     tokenizer = PretrainedTokenizer(config=config_tokenizer)
 
     rar_config=RARConfig(hidden_size=config.model.generator.hidden_size,num_hidden_layers=config.model.generator.num_hidden_layers)
@@ -111,7 +118,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             randomize_temperature=1.02
             ):
     image_seq_len = 256
-    guidance_scale = 4.0
+    guidance_scale = 2.0
 
     def choice(logits,key):
         logits=logits/randomize_temperature

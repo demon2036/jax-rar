@@ -181,17 +181,17 @@ def main(configs):
             for _ in range(grad_accum_steps):
                 # batch = jax.tree_util.tree_map(lambda x: jax.make_array_from_process_local_data(sharding,np.asarray(x))  , next(train_dataloader_iter))
 
-                def get_cos_sim(image_features, labels):
-                    sim = torch.nn.CosineSimilarity(dim=-1)(image_features.unsqueeze(1), image_features.unsqueeze(0))
-                    sim = (sim + 1) / 2
-                    label_mask = labels[:, None] != labels[None, :]
-                    mask_sin = sim * label_mask
-                    return mask_sin
-
-
-                data=next(train_dataloader_iter)
-
-                print(get_cos_sim(data[-1],data[1]))
+                # def get_cos_sim(image_features, labels):
+                #     sim = torch.nn.CosineSimilarity(dim=-1)(image_features.unsqueeze(1), image_features.unsqueeze(0))
+                #     sim = (sim + 1) / 2
+                #     label_mask = labels[:, None] != labels[None, :]
+                #     mask_sin = sim * label_mask
+                #     return mask_sin
+                #
+                #
+                # data=next(train_dataloader_iter)
+                #
+                # print(get_cos_sim(data[-1],data[1]))
 
 
                 batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), data)
