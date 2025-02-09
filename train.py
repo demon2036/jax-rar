@@ -125,8 +125,7 @@ def main(configs):
 
 
 
-    train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'],grad_accum=grad_accum_steps)
-    train_dataloader_iter=iter(train_dataloader)
+
 
 
     logical_axis_rules = [
@@ -168,6 +167,9 @@ def main(configs):
 
         print(state.ema_params.keys())
         sampler.sample_and_eval(state.ema_params['params']['model'])
+
+        train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
+        train_dataloader_iter = iter(train_dataloader)
 
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
             for _ in range(grad_accum_steps):

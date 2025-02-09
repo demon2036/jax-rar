@@ -68,4 +68,5 @@ def convert_torch_to_flax_rar(state_dict):
     # 将所有 torch.Tensor 转为 numpy 数组（若你使用的是 torch.Tensor 类型）
     params = {k: v.numpy() for k, v in params.items()}
     params = flax.traverse_util.unflatten_dict(params,sep='.')
+
     return params

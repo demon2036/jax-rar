@@ -58,7 +58,8 @@ def get_torch_model_from_rar_size(rar_model_size='rar_xxl'):
     assert rar_model_size in ["rar_b", "rar_l", "rar_xl", "rar_xxl"]
 
     # local_dir= '../'
-    local_dir= '/root/'
+    # local_dir= '/root/'
+    local_dir= 'torch_model_weight/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -100,7 +101,7 @@ def get_torch_model_from_rar_size(rar_model_size='rar_xxl'):
     # tokenizer_params = convert_vqgan_state_dict(tokenizer.state_dict())
     # tokenizer = PretrainedTokenizer(config=config_tokenizer)
     # rar_config=RARConfig(hidden_size=config.model.generator.hidden_size,num_hidden_layers=config.model.generator.num_hidden_layers)
-    return model_params#,tokenizer_params,model,tokenizer,rar_config
+    return model_params
 
 
 def get_jax_tokenizer():
@@ -132,6 +133,8 @@ def get_jax_tokenizer():
 
 def load_pretrain(pretrained_model='convnext_base.fb_in1k', default_params=None):
     model_jax_params=get_torch_model_from_rar_size(pretrained_model)
+
+    print(model_jax_params.keys())
 
     model_jax_params = jax.tree_util.tree_map(jnp.asarray, model_jax_params)
     return {'model': model_jax_params}
@@ -225,12 +228,12 @@ def create_train_state2(train_state_config,
 
         state = TrainState.create(
             apply_fn=module.apply,
-            params=model_params,
-            ref_model_params=copy.deepcopy(model_params),
+            params={'model':model_params},
+            ref_model_params={'ref_model':copy.deepcopy(model_params)},
             tx=tx,
             dropout_rng=jax.random.PRNGKey(train_state_config['dropout_seed']),
             ema_decay=train_state_config['ema_decay'],
-            ema_params=copy.deepcopy(model_params) if train_state_config['ema_decay'] > 0 else None,
+            ema_params={'model':copy.deepcopy(model_params)} if train_state_config['ema_decay'] > 0 else None,
             micro_step=0,
             micro_in_mini=grad_accum_steps,
             grad_accum=grad_accum if grad_accum_steps > 1 else None,
@@ -284,8 +287,6 @@ def init_state(train_state_config,warmup_steps=1, training_steps=10,
 
     # state_shapes,train_state_sharding,init_fn,init_by_params_fn,init_rngs,example_inputs=create_train_state2(train_state_config,mesh=mesh)
     # state = jax.jit(init_fn, out_shardings=train_state_sharding)(init_rngs, example_inputs)
-
-
 
 
     if restore_state_config is not None:

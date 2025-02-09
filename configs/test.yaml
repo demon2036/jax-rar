@@ -19,7 +19,7 @@ tp: 1
 # No Valid data shard . Valid diretly by openai FID samples
 
 dataset:
-  train_batch_size: 16
+  train_batch_size: 1
   train_loader_workers: 20
   train_dataset_shards: "/home/john/PycharmProjects/jax-rar/shards-{00000..00003}.tar"
   shuffle_seed: 10
@@ -40,11 +40,13 @@ train_state:
     config:
       target: 'models.FlaxRARConfig'
       kwargs:
-#        embed_dim: 1408
-        embed_dim: 16
-        depth: 1
-#        intermediate_size: 6144
-        intermediate_size: 1
+#        embed_dim: 16
+#        depth: 1
+#        intermediate_size: 1
+
+        embed_dim: 1408
+        depth: 40
+        intermediate_size: 6144
 
   train_module:
     target: 'train_modules.TrainModule'
@@ -66,7 +68,7 @@ train_state:
   mixup_seed: 1
   dropout_seed: 1
   ema_decay: 0.9998
-  pretrained_ckpt: ''
+  pretrained_ckpt: 'rar_xxl'
 
 
 
