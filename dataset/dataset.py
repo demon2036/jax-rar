@@ -38,12 +38,12 @@ def create_dataloaders(
     total_batch_size = train_batch_size // jax.process_count() //grad_accum
     dataset = wds.DataPipeline(
         wds.SimpleShardList(train_dataset_shards, seed=shuffle_seed),
-        # itertools.cycle,
-        # wds.detshuffle(),
+        itertools.cycle,
+        wds.detshuffle(),
         wds.slice(jax.process_index(), None, jax.process_count()),
         wds.split_by_worker,
         wds.tarfile_to_samples(handler=wds.ignore_and_continue), #handler=wds.ignore_and_continue
-        # wds.detshuffle(),
+        wds.detshuffle(),
         wds.decode("pil", handler=wds.ignore_and_continue),
         wds.to_tuple("token.pyd", "cls", "siglip_feature.pyd", "dino_feature.pyd", handler=wds.ignore_and_continue),
         # wds.to_tuple("siglip_feature.pyd", handler=wds.ignore_and_continue),
