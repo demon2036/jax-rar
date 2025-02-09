@@ -111,7 +111,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             randomize_temperature=1.02
             ):
     image_seq_len = 256
-    guidance_scale = 4.0,
+    guidance_scale = 4.0
 
     def choice(logits,key):
         logits=logits/randomize_temperature
@@ -249,7 +249,6 @@ class Sampler:
 
     def compute_array_statistics(self,x):
         data=x
-        print(data)
         images = []
         for img in tqdm.tqdm(data):
             img=PIL.Image.fromarray(img)
@@ -258,7 +257,6 @@ class Sampler:
                 resample=Image.BILINEAR,
             )
             img = np.array(img,dtype=np.float32) / 255.0
-            # print(img)
             images.append(img)
 
         num_batches = int(len(images) // self.batch_size)
