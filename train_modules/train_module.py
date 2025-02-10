@@ -61,9 +61,9 @@ class TrainModule(nn.Module):
         # is_sampling: bool = True
 
         #
-        # condition=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.0)
-        # logits=self.model.train_dpo(tokens, condition)
-        # loss=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],tokens)
+        condition=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.0)
+        logits=self.model.train_dpo(tokens, condition)
+        loss_ce=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],tokens).mean()
         # return {'loss':loss.mean()}
 
 
@@ -125,7 +125,12 @@ class TrainModule(nn.Module):
         reward_accuracies = (chosen_rewards > rejected_rewards).astype(jnp.float32)
 
 
-        return {'loss':loss,'chosen_rewards':chosen_rewards.mean(),'rejected_rewards':rejected_rewards.mean(),'reward_accuracies':reward_accuracies.mean()}
+        return {'loss':loss+loss_ce,
+                'chosen_rewards':chosen_rewards.mean(),
+                'rejected_rewards':rejected_rewards.mean(),
+                'reward_accuracies':reward_accuracies.mean(),
+                'loss_ce':loss_ce
+                }
         # return self.model(tokens, det=det)
 
         # loss = self.criterion((logits := self.model(images, det=det)), labels)
