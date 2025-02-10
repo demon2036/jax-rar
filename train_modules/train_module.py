@@ -81,6 +81,9 @@ class TrainModule(nn.Module):
         chosen_ref_logits = self.ref_model.train_dpo(tokens, labels)
         rejected_ref_logits = self.ref_model.train_dpo(rejected_token, labels)
 
+        chosen_ref_logits=jax.lax.stop_gradient(chosen_ref_logits)
+        rejected_ref_logits=jax.lax.stop_gradient(rejected_ref_logits)
+
         chosen_logps_seq = jnp.take_along_axis(  # [B, S]
             jax.nn.log_softmax(chosen_logits[..., :-1, :], axis=-1), chosen_ids[..., None], axis=-1
         )[..., 0]
