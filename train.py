@@ -24,6 +24,7 @@ import jax.numpy as jnp
 import jax.tree_util as jtu
 import numpy as np
 import tqdm
+import wandb
 from flax.linen import partitioning as nn_partitioning
 from jax import NamedSharding
 from jax._src.mesh import Mesh
@@ -180,9 +181,6 @@ def main(configs):
                 average_meter.update(**metrics)
 
 
-            if step % epoch_per_step == 0:
-                epoch = step // epoch_per_step
-                mix_ratio_state.update_mix_ratio(epoch, configs['training_epoch'])
 
             if (
                     jax.process_index() == 0
@@ -190,8 +188,7 @@ def main(configs):
                     and step % log_interval == 0
             ):
                 metrics = average_meter.summary(prefix="train/")
-                metrics["processed_samples"] = step * configs['dataset']['train_batch_size']
-                metrics["mix_ratio"] = mix_ratio_state.ratio
+                # metrics["processed_samples"] = step * configs['dataset']['train_batch_size']
                 wandb.log(metrics, step)
 
 
