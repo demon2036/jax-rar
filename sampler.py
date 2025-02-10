@@ -153,14 +153,21 @@ def sample( key,params,tokenizer_params,
 
     condition_jax = condition + 1024 + 1
     none_condition = model.apply({'params': params}, condition_jax, method=model.get_none_condition)
-    if guidance_scale != 0:
-        c = jnp.concat([condition_jax, none_condition], axis=0)
-        logits, cache = prefill_jit({'params': params}, c,
-                                    cache, attn_mask=attn_mask)
-        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
-    else:
-        logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
+
+    c = jnp.concat([condition_jax, none_condition], axis=0)
+    logits, cache = prefill_jit({'params': params}, c,
+                                cache, attn_mask=attn_mask)
+    cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
+
+    # if guidance_scale != 0:
+    #     c = jnp.concat([condition_jax, none_condition], axis=0)
+    #     logits, cache = prefill_jit({'params': params}, c,
+    #                                 cache, attn_mask=attn_mask)
+    #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
+    # else:
+    #     logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
 
     token_buffer = jnp.zeros((batch_size, 256), jnp.int32)
 
@@ -181,18 +188,26 @@ def sample( key,params,tokenizer_params,
         last_token=sample_state.token_buffer[:,i]
         last_token=last_token.reshape((sample_state.token_buffer.shape[0],1))
 
-        if guidance_scale != 0:
-            logits, cache = decode_jit({'params': params},
-                                       jnp.concat([last_token,last_token], axis=0),
-                                       jnp.concat([condition_jax, none_condition], axis=0),
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        logits, cache = decode_jit({'params': params},
+                                   jnp.concat([last_token, last_token], axis=0),
+                                   jnp.concat([condition_jax, none_condition], axis=0),
+                                   sample_state.position_ids, sample_state.cache, sample_state.attn_mask, )
 
+        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
 
-            cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-            logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
-        else:
-            logits, cache = decode_jit({'params': params},last_token, condition_jax,
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
+        # if guidance_scale != 0:
+        #     logits, cache = decode_jit({'params': params},
+        #                                jnp.concat([last_token,last_token], axis=0),
+        #                                jnp.concat([condition_jax, none_condition], axis=0),
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        #
+        #
+        #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
+        # else:
+        #     logits, cache = decode_jit({'params': params},last_token, condition_jax,
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
 
         sample_state.key, key_sample = jax.random.split(sample_state.key)
         next_token = vmap_choice(logits[:, -1], jax.random.split(key_sample, logits.shape[0]))
