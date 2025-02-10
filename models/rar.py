@@ -78,51 +78,59 @@ class AttentionRAR(nn.Module):
         k = self.k_norm(k).astype(q.dtype)
 
         # 如果开启 KV cache，可以将过去的 k、v 拼接（这里只是简单示例，实际使用中需使用 mutable state）
-        if cache is not None:
-            end_index = cache['end_index'][0]
-            # print(cache['v'].shape,v.shape)
-
-            slice_indices = (0, 0, end_index , 0)
-            v = jax.lax.dynamic_update_slice(
-                cache['v'],
-                v,
-                slice_indices,
-            )
-            k = jax.lax.dynamic_update_slice(
-                cache['k'], k, slice_indices
-            )
-            new_cache = {
-                'v': v,
-                'k': k,
-                'end_index': cache['end_index'] + N,
-            }
-        else:
-            new_cache = None
         # if cache is not None:
         #     end_index = cache['end_index'][0]
-        #     print(cache['v'].shape,v.shape)
-        #     b,*_=v.shape
-        #
         #     slice_indices = (0, 0, end_index , 0)
         #     v = jax.lax.dynamic_update_slice(
         #         cache['v'],
-        #         v[:b//2],
+        #         v,
         #         slice_indices,
         #     )
         #     k = jax.lax.dynamic_update_slice(
-        #         cache['k'], k[:b//2], slice_indices
+        #         cache['k'], k, slice_indices
         #     )
         #     new_cache = {
         #         'v': v,
         #         'k': k,
         #         'end_index': cache['end_index'] + N,
         #     }
-        #
-        #     v=jnp.concat([v,v],axis=0)
-        #     k = jnp.concat([k, k], axis=0)
-        #
         # else:
         #     new_cache = None
+        if cache is not None:
+            end_index = cache['end_index'][0]
+            b,*_=v.shape
+
+            slice_indices = (0, 0, end_index , 0)
+            v = jax.lax.dynamic_update_slice(
+                cache['v'],
+                v[:b//2],
+                slice_indices,
+            )
+            k = jax.lax.dynamic_update_slice(
+                cache['k'], k[:b//2], slice_indices
+            )
+            new_cache = {
+                'v': v,
+                'k': k,
+                'end_index': cache['end_index'] + N,
+            }
+
+
+            un_v = jax.lax.dynamic_update_slice(
+                v,
+                v[b//2:],
+                slice_indices,
+            )
+            un_k = jax.lax.dynamic_update_slice(
+                k, k[b//2:], slice_indices
+            )
+
+
+            v=jnp.concat([v,un_v],axis=0)
+            k = jnp.concat([k, un_k], axis=0)
+
+        else:
+            new_cache = None
 
 
         attn_weights = (q @ k.swapaxes(2, 3)) / math.sqrt(self.head_dim)

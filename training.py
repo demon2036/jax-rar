@@ -80,3 +80,20 @@ def training_step(state: TrainState, batch: ArrayTree) :  # -> tuple[TrainState,
 
 
 
+if __name__=="__main__":
+    x=jnp.ones((3,))
+
+    m=x[0:1]*2
+    m2=x[0:1]*20
+
+    v= jax.lax.dynamic_update_slice(
+                x,
+                m,
+                (0,),
+    )
+    v2= jax.lax.dynamic_update_slice(
+                v,
+                m2,
+                (0,),
+    )
+    print(x,v,v2)

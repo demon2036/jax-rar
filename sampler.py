@@ -32,7 +32,7 @@ from utils.generate_utils import create_npz_from_np
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
     # local_dir= '../'
     local_dir= '/root/'
 
