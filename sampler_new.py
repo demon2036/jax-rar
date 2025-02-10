@@ -375,7 +375,7 @@ class Sampler:
         ]
 
         guidance_scales=[1.5,2.0,3.0,4.0,5.0]
-        scale_pows=[0.5,0.75,1,2,4]
+        scale_pows=[0.0,0.5,0.75,1,2,4]
 
         scan_lists=[]
 
