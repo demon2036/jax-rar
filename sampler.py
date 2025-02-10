@@ -238,9 +238,7 @@ class Sampler:
 
 
         sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
-                            guidance_scale=guidance_scale,
-                            scale_pow=scale_pow,
-                            randomize_temperature=randomize_temperature,
+
                             )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
             P('dp'), P(None), P(None)
@@ -261,7 +259,6 @@ class Sampler:
             P('dp'),P(None)
         ),
              out_specs=P('dp')
-            # out_specs=P(None),check_rep=False
         )
 
         self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,)
@@ -304,14 +301,19 @@ class Sampler:
         return fid_score
 
 
-    def sample(self,params,save_npz):
+    def sample(self,params,save_npz=False, guidance_scale=8.0,
+                            scale_pow=1.0,
+                            randomize_temperature=1.0,):
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
         for _ in tqdm.tqdm(range(iters)):
-            sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
+            sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
+                                                     scale_pow=scale_pow,
+                                                     randomize_temperature=randomize_temperature,
+                                                     guidance_scale=guidance_scale)
             sample_img=process_allgather(sample_img)
             data.append(np.array(sample_img))
 
@@ -329,7 +331,8 @@ class Sampler:
 
 
 
-
+    def scan_sample_and_eval(self):
+        pass
 
 
 
