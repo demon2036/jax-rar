@@ -240,9 +240,10 @@ class Sampler:
         sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
                             )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
-            P('dp'), P(None), P(None),P(None),P(None),P(None)
+            P('dp'), P(None), P(None),P(),P(),P()
         ),
             out_specs=P('dp')
+
         )
         self.sample_jit = jax.jit(sample_fn,)#out_shardings=NamedSharding(mesh,P(None))
 
