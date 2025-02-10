@@ -179,6 +179,7 @@ def main(configs):
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
                 state, metrics = training_step_pjit(state, batch, )
                 average_meter.update(**metrics)
+                print(metrics)
 
 
 
