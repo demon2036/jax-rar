@@ -400,12 +400,21 @@ class Sampler:
 
         for scan_config in scan_lists:
 
+            #
+            # if len(threads)>1:
+            #     thread, threads = threads[0], threads[1:]
+            #     thread.join()
+            #
+            #
+            # print(scan_config,f'{len(datas)=}   {threads=}',)
 
-            if len(threads)>1:
-                thread, threads = threads[0], threads[1:]
+            for thread in threads:
                 thread.join()
 
-            print(scan_config,f'{len(datas)=}   {threads=}',)
+            threads=[]
+
+
+
 
 
             if len(datas)>0:
