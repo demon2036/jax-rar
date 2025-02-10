@@ -36,9 +36,9 @@ train_state:
 
 
   optimizer:
-    target: 'adamw'
+    target: 'lion'
     optimizer_kwargs:
-      learning_rate: 1.0e-4
+      learning_rate: 3.0e-5
       init_value: 1.0e-6
       end_learning_rate: 1.0e-5
       weight_decay: 0.03
