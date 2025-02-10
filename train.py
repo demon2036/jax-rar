@@ -170,13 +170,17 @@ def main(configs):
         average_meter, max_val_acc1 = AverageMeter(use_latest=["learning_rate"]), 0.0
         fid=sampler.sample_and_eval(state.ema_params)
 
-        if jax.process_index() == 0:
-            wandb.init(name=configs['name'], project=configs['project'], config=configs)
-            metrics = {'val/fid': fid}
-            wandb.log(metrics)
+
 
 
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
+
+            if step==1:
+                if jax.process_index() == 0:
+                    wandb.init(name=configs['name'], project=configs['project'], config=configs)
+                    metrics = {'val/fid': fid}
+                    wandb.log(metrics, step)
+
             for _ in range(grad_accum_steps):
                 batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), next(train_dataloader_iter))
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
@@ -202,7 +206,7 @@ def main(configs):
                 fid=sampler.sample_and_eval(state.ema_params)
                 if jax.process_index() == 0:
                     metrics={'val/fid':fid}
-                    wandb.log(metrics)
+                    wandb.log(metrics,step)
 
 
                 """
