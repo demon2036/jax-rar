@@ -279,7 +279,7 @@ class Sampler:
         self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,)
 
 
-    def compute_array_statistics(self,x):
+    def preprocess_image_to_fid_eval(self,x):
         data=x
         images = []
         for img in tqdm.tqdm(data):
@@ -290,6 +290,20 @@ class Sampler:
             )
             img = np.array(img,dtype=np.float32) / 255.0
             images.append(img)
+        return images
+
+
+    def compute_array_statistics(self,images):
+        # data=x
+        # images = []
+        # for img in tqdm.tqdm(data):
+        #     img=PIL.Image.fromarray(img)
+        #     img = img.resize(
+        #         size=(299,299),
+        #         resample=Image.BILINEAR,
+        #     )
+        #     img = np.array(img,dtype=np.float32) / 255.0
+        #     images.append(img)
 
         num_batches = int(len(images) // self.fid_eval_batch_size)
         act = []
@@ -316,7 +330,7 @@ class Sampler:
         return fid_score
 
 
-    def sample(self,params,save_npz=False, guidance_scale=8.0,
+    def sample(self,params,save_npz=False, guidance_scale=4.0,
                             scale_pow=1.0,
                             randomize_temperature=1.0,):
         # 构造 rngs 字典
@@ -342,6 +356,7 @@ class Sampler:
 
     def sample_and_eval(self,params):
         generated_image=self.sample(params,False)
+        generated_image=self.preprocess_image_to_fid_eval(generated_image)
         fid=self.computer_fid(generated_image)
         return fid
 
