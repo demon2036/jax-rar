@@ -313,7 +313,6 @@ class Sampler:
         act = []
         for i in tqdm.tqdm(range(num_batches)):
             x = images[i * self.fid_eval_batch_size: i * self.fid_eval_batch_size + self.fid_eval_batch_size]
-
             x = np.asarray(x)
             x = 2 * x - 1
             pred = self.fid_apply_fn_jit(jax.lax.stop_gradient(x),self.fid_model_params)
@@ -397,6 +396,7 @@ class Sampler:
             datas.append(generated_image)
             config_list.append(config)
 
+        print(scan_lists,len(scan_lists))
 
         for scan_config in scan_lists:
 
@@ -412,9 +412,6 @@ class Sampler:
                 thread.join()
 
             threads=[]
-
-
-
 
 
             if len(datas)>0:
