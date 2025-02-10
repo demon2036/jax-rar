@@ -418,7 +418,7 @@ class Sampler:
             thread.start()
             threads.append(thread)
 
-
+        print('go')
 
         while len(datas)>0 or len(threads)>0:
 
