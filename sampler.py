@@ -289,8 +289,10 @@ class Sampler:
                 size=(299,299),
                 resample=Image.BILINEAR,
             )
-            img = np.array(img,dtype=np.float32) / 255.0
+            # img = np.array(img,dtype=np.float32) / 255.0
+            img = np.asarray(img, dtype=np.float32)
             images.append(img)
+        images=np.array(images)/ 255.0
         return images
 
 
@@ -372,6 +374,10 @@ class Sampler:
             {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
         ]
 
+        guidance_scales=[1.5,2.0,3.0,4.0,5.0]
+        scale_pows=[0.5,0.75,1,2,4]
+
+
         datas=[]
         config_list=[]
         threads=[]
@@ -382,8 +388,10 @@ class Sampler:
             config_list.append(config)
 
 
-
         for scan_config in scan_lists:
+
+
+
 
             if len(datas)>0:
                 data,datas=datas[0],datas[1:]
@@ -401,12 +409,19 @@ class Sampler:
         for thread in threads:
             thread.join()
 
-        while len(datas)>0:
-                data,datas=datas[0],datas[1:]
-                config,config_list=config_list[0],config_list[1:]
-                fid = self.computer_fid(data,)
-                if jax.process_count()==0:
-                    print(config | {'fid':fid})
+
+
+
+        while len(datas)>0 or len(threads)>0:
+
+            thread,threads=threads[0],threads[1:]
+            thread.join()
+
+            data,datas=datas[0],datas[1:]
+            config,config_list=config_list[0],config_list[1:]
+            fid = self.computer_fid(data,)
+            if jax.process_count()==0:
+                print(config | {'fid':fid})
 
 
 
