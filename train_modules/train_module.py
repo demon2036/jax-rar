@@ -61,10 +61,10 @@ class TrainModule(nn.Module):
         # is_sampling: bool = True
 
 
-        # condition=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.1)
-        # logits=self.model.train_dpo(tokens, condition)
-        # loss=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],tokens)
-        # return {'loss':loss.mean()}
+        condition=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.0)
+        logits=self.model.train_dpo(tokens, condition)
+        loss=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],tokens)
+        return {'loss':loss.mean()}
 
 
         labels=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.0)
