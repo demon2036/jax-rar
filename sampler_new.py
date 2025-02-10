@@ -155,15 +155,20 @@ def sample( key,params,tokenizer_params,
     condition_jax = condition + 1024 + 1
     none_condition = model.apply({'params': params}, condition_jax, method=model.get_none_condition)
 
+    c = jnp.concat([condition_jax, none_condition], axis=0)
+    logits, cache = prefill_jit({'params': params}, c,
+                                cache, attn_mask=attn_mask)
+    cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
 
-    if guidance_scale != 0:
-        c = jnp.concat([condition_jax, none_condition], axis=0)
-        logits, cache = prefill_jit({'params': params}, c,
-                                    cache, attn_mask=attn_mask)
-        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
-    else:
-        logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
+    # if guidance_scale != 0:
+    #     c = jnp.concat([condition_jax, none_condition], axis=0)
+    #     logits, cache = prefill_jit({'params': params}, c,
+    #                                 cache, attn_mask=attn_mask)
+    #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
+    # else:
+    #     logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
 
     token_buffer = jnp.zeros((batch_size, 256), jnp.int32)
 
@@ -184,18 +189,26 @@ def sample( key,params,tokenizer_params,
         last_token=sample_state.token_buffer[:,i]
         last_token=last_token.reshape((sample_state.token_buffer.shape[0],1))
 
-        if guidance_scale != 0:
-            logits, cache = decode_jit({'params': params},
-                                       jnp.concat([last_token,last_token], axis=0),
-                                       jnp.concat([condition_jax, none_condition], axis=0),
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        logits, cache = decode_jit({'params': params},
+                                   jnp.concat([last_token, last_token], axis=0),
+                                   jnp.concat([condition_jax, none_condition], axis=0),
+                                   sample_state.position_ids, sample_state.cache, sample_state.attn_mask, )
 
+        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
 
-            cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-            logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
-        else:
-            logits, cache = decode_jit({'params': params},last_token, condition_jax,
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
+        # if guidance_scale != 0:
+        #     logits, cache = decode_jit({'params': params},
+        #                                jnp.concat([last_token,last_token], axis=0),
+        #                                jnp.concat([condition_jax, none_condition], axis=0),
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        #
+        #
+        #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
+        # else:
+        #     logits, cache = decode_jit({'params': params},last_token, condition_jax,
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
 
         sample_state.key, key_sample = jax.random.split(sample_state.key)
         next_token = vmap_choice(logits[:, -1], jax.random.split(key_sample, logits.shape[0]))
@@ -225,8 +238,8 @@ def sample( key,params,tokenizer_params,
 class Sampler:
 
     def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
-                 guidance_scale=1.5,
-                 scale_pow=0.0,
+                 guidance_scale=15.5,
+                 scale_pow=2.5,
                  randomize_temperature=1.0
                  ):
         self.model=model
@@ -241,12 +254,9 @@ class Sampler:
 
 
         sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
-                            guidance_scale=guidance_scale,
-                            scale_pow=scale_pow,
-                            randomize_temperature=randomize_temperature,
                             )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
-            P('dp'), P(None), P(None)
+            P('dp'), P(None), P(None),P(),P(),P()
         ),
             out_specs=P('dp')
 
@@ -288,6 +298,16 @@ class Sampler:
 
 
     def compute_array_statistics(self,images):
+        # data=x
+        # images = []
+        # for img in tqdm.tqdm(data):
+        #     img=PIL.Image.fromarray(img)
+        #     img = img.resize(
+        #         size=(299,299),
+        #         resample=Image.BILINEAR,
+        #     )
+        #     img = np.array(img,dtype=np.float32) / 255.0
+        #     images.append(img)
 
         num_batches = int(len(images) // self.fid_eval_batch_size)
         act = []
@@ -314,9 +334,9 @@ class Sampler:
         return fid_score
 
 
-    def sample(self,params,save_npz=False,
-
-               ):
+    def sample(self,params,save_npz=False, guidance_scale=4.0,
+                            scale_pow=1.0,
+                            randomize_temperature=1.0,):
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
@@ -324,6 +344,9 @@ class Sampler:
         iters = 51200//(jax.device_count()*self.batch_size)
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
+                                                     guidance_scale,
+                                                     scale_pow,
+                                                     randomize_temperature,
                                                      )
             sample_img=process_allgather(sample_img)
             data.append(np.array(sample_img))
