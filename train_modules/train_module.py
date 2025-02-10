@@ -61,7 +61,13 @@ class TrainModule(nn.Module):
         # is_sampling: bool = True
 
 
-        labels=self.model.preprocess_condition(labels,self.make_rng('dropout'))
+        condition=self.model.preprocess_condition(labels,self.make_rng('dropout'))
+        logits=self.model.train_dpo(tokens, condition)
+
+        loss=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],labels)
+        return {'loss':loss.mean()}
+
+
 
 
         mask_sin=get_cos_sim(dino_feature,labels)
