@@ -385,7 +385,6 @@ class Sampler:
 
         for scan_config in scan_lists:
 
-
             if len(datas)>0:
                 data,datas=datas[0],datas[1:]
                 config,config_list=config_list[0],config_list[1:]
@@ -395,7 +394,7 @@ class Sampler:
 
             generated_image = self.sample(params, False,**scan_config)
 
-            thread=threading.Thread(target=thread_process_img,(generated_image,scan_config,datas,config_list))
+            thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
             thread.start()
             threads.append(thread)
 
