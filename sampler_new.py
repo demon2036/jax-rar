@@ -377,7 +377,7 @@ class Sampler:
         #     {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
         # ]
 
-        guidance_scales=[1.5,2.0,3.0,4.0,5.0]
+        guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0,5.5]
         scale_pows=[0.0,0.5,0.75,1,2,4]
 
         scan_lists=[]
@@ -424,26 +424,32 @@ class Sampler:
                 print()
 
             generated_image = self.sample(params, False,**scan_config)
+            generated_image = self.preprocess_image_to_fid_eval(generated_image)
+            fid = self.computer_fid(data, )
+            print()
+            print({'fid': fid})
+            print(config | {'fid': fid})
+            print()
 
-            thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
-            thread.start()
-            threads.append(thread)
-
-        print('here we finish')
-
-        while len(datas)>0 or len(threads)>0:
-            thread,threads=threads[0],threads[1:]
-            thread.join()
-
-            data,datas=datas[0],datas[1:]
-            config,config_list=config_list[0],config_list[1:]
-            fid = self.computer_fid(data,)
-            print({'fid':fid})
-            print(config | {'fid':fid})
-
-
-
-        print('here we finish final')
+        #     thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
+        #     thread.start()
+        #     threads.append(thread)
+        #
+        # print('here we finish')
+        #
+        # while len(datas)>0 or len(threads)>0:
+        #     thread,threads=threads[0],threads[1:]
+        #     thread.join()
+        #
+        #     data,datas=datas[0],datas[1:]
+        #     config,config_list=config_list[0],config_list[1:]
+        #     fid = self.computer_fid(data,)
+        #     print({'fid':fid})
+        #     print(config | {'fid':fid})
+        #
+        #
+        #
+        # print('here we finish final')
 
 
 def main():
