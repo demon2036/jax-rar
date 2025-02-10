@@ -308,10 +308,11 @@ class Sampler:
         #     )
         #     img = np.array(img,dtype=np.float32) / 255.0
         #     images.append(img)
-
+        print('cal inception')
         num_batches = int(len(images) // self.fid_eval_batch_size)
         act = []
-        for i in tqdm.tqdm(range(num_batches)):
+        # for i in tqdm.tqdm(range(num_batches)):
+        for i in range(num_batches):
             x = images[i * self.fid_eval_batch_size: i * self.fid_eval_batch_size + self.fid_eval_batch_size]
             x = np.asarray(x)
             x = 2 * x - 1
@@ -336,12 +337,14 @@ class Sampler:
     def sample(self,params,save_npz=False, guidance_scale=4.0,
                             scale_pow=1.0,
                             randomize_temperature=1.0,):
+        print('sample')
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
-        for _ in tqdm.tqdm(range(iters)):
+        # for _ in tqdm.tqdm(range(iters)):
+        for _ in range(iters):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
                                                      guidance_scale,
                                                      scale_pow,
@@ -367,12 +370,12 @@ class Sampler:
 
     def scan_sample_and_eval(self,params):
 
-        scan_lists=[
-            {'guidance_scale':4.0,'scale_pow':2.0,'randomize_temperature':1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 1.0, 'randomize_temperature': 1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 2.0, 'randomize_temperature': 1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
-        ]
+        # scan_lists=[
+        #     {'guidance_scale':4.0,'scale_pow':2.0,'randomize_temperature':1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 1.0, 'randomize_temperature': 1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 2.0, 'randomize_temperature': 1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
+        # ]
 
         guidance_scales=[1.5,2.0,3.0,4.0,5.0]
         scale_pows=[0.0,0.5,0.75,1,2,4]
@@ -382,8 +385,6 @@ class Sampler:
         for guidance_scale in guidance_scales:
             for scale_pow in scale_pows:
                 scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': 1.0},)
-
-
 
 
 
@@ -399,10 +400,17 @@ class Sampler:
         print(scan_lists,len(scan_lists))
 
         for scan_config in tqdm.tqdm(scan_lists):
-            for thread in threads:
+
+
+            if len(threads)>5:
+                print('wait for thread')
+                thread, threads = threads[0], threads[1:]
                 thread.join()
 
-            threads=[]
+            # for thread in threads:
+            #     thread.join()
+
+            # threads=[]
 
 
             if len(datas)>0:
@@ -418,7 +426,7 @@ class Sampler:
             thread.start()
             threads.append(thread)
 
-        print('go')
+        print('here we finish')
 
         while len(datas)>0 or len(threads)>0:
             thread,threads=threads[0],threads[1:]
@@ -430,9 +438,9 @@ class Sampler:
             print({'fid':fid})
             print(config | {'fid':fid})
 
-        for thread in threads:
-            thread.join()
 
+
+        print('here we finish final')
 
 
 def main():
