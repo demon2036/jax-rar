@@ -4,7 +4,7 @@ name: dpo-rar-b
 project: jax-dpo-rar
 steps: 1281167
 training_epoch: 500
-warmup_epoch: 0
+warmup_epoch: 10
 log_interval: 100
 eval_epoch: 1
 grad_accum_steps: 1
@@ -36,14 +36,14 @@ train_state:
 
 
   optimizer:
-    target: 'lamb'
+    target: 'adamw'
     optimizer_kwargs:
       learning_rate: 1.0e-4
       init_value: 1.0e-6
       end_learning_rate: 1.0e-5
-      weight_decay: 0.05
+      weight_decay: 0.03
       b1: 0.9
-      b2: 0.99
+      b2: 0.96
 
 
   grad_accum_steps: 1
