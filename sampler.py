@@ -112,13 +112,15 @@ class RARConfig:
         self.num_hidden_layers = num_hidden_layers
         # self.head_dim
 
-def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size=1,
+def sample( key,params,tokenizer_params,
+            guidance_scale=16.0,
+            scale_pow=2.75,
+            randomize_temperature=1.0,
+            model=None,tokenizer_jax=None, config=None, batch_size=1,
             # guidance_scale = 8.0,
             # scale_pow = 1.2,
             # randomize_temperature=1.02
-        guidance_scale = 16.0,
-        scale_pow = 2.75,
-        randomize_temperature = 1.0
+
 
             ):
     image_seq_len = 256
@@ -238,7 +240,6 @@ class Sampler:
 
 
         sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
-
                             )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
             P('dp'), P(None), P(None)
@@ -311,9 +312,10 @@ class Sampler:
         iters = 51200//(jax.device_count()*self.batch_size)
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
+                                                     guidance_scale,
                                                      scale_pow=scale_pow,
                                                      randomize_temperature=randomize_temperature,
-                                                     guidance_scale=guidance_scale)
+                                                     )
             sample_img=process_allgather(sample_img)
             data.append(np.array(sample_img))
 
