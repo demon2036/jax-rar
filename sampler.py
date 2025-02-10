@@ -1,4 +1,5 @@
 import os
+import threading
 from functools import partial
 from typing import Any
 
@@ -326,7 +327,7 @@ class Sampler:
         mu1, sigma1 = self.compute_array_statistics(x)
         mu2, sigma2 = fid.compute_statistics("/root/VIRTUAL_imagenet256_labeled.npz", None,None,None,None)
         fid_score = fid.compute_frechet_distance(mu1, mu2, sigma1, sigma2, eps=1e-6)
-        print('Fid:', fid_score)
+        # print('Fid:', fid_score)
         return fid_score
 
 
@@ -362,8 +363,52 @@ class Sampler:
 
 
 
-    def scan_sample_and_eval(self):
-        pass
+    def scan_sample_and_eval(self,params):
+
+        scan_lists=[
+            {'guidance_scale':4.0,'scale_pow':2.0,'randomize_temperature':1.0},
+            {'guidance_scale': 2.0, 'scale_pow': 1.0, 'randomize_temperature': 1.0},
+            {'guidance_scale': 2.0, 'scale_pow': 2.0, 'randomize_temperature': 1.0},
+            {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
+        ]
+
+        datas=[]
+        config_list=[]
+        threads=[]
+
+        def thread_process_img(generated_image,config,datas,config_list):
+            generated_image = self.preprocess_image_to_fid_eval(generated_image)
+            datas.append(generated_image)
+            config_list.append(config)
+
+
+
+        for scan_config in scan_lists:
+
+
+            if len(datas)>0:
+                data,datas=datas[0],datas[1:]
+                config,config_list=config_list[0],config_list[1:]
+                fid = self.computer_fid(data,)
+                if jax.process_count()==0:
+                    print(config | {'fid':fid})
+
+            generated_image = self.sample(params, False,**scan_config)
+
+            thread=threading.Thread(target=thread_process_img,(generated_image,scan_config,datas,config_list))
+            thread.start()
+            threads.append(thread)
+
+        for thread in threads:
+            thread.join()
+
+        while len(datas)>0:
+                data,datas=datas[0],datas[1:]
+                config,config_list=config_list[0],config_list[1:]
+                fid = self.computer_fid(data,)
+                if jax.process_count()==0:
+                    print(config | {'fid':fid})
+
 
 
 
@@ -377,7 +422,8 @@ def main():
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
     sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
-    sampler.sample_and_eval(model_params)
+    # sampler.sample_and_eval(model_params)
+    sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
 
 
