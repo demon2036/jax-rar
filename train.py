@@ -84,6 +84,15 @@ def evaluate(state: TrainState, dataloader: DataLoader, validation_adv_step_jite
     return jax.tree_util.tree_map(lambda x: x / num_samples, metrics)
 
 
+# def get_cos_sim(image_features, labels):
+#     sim = torch.nn.CosineSimilarity(dim=-1)(image_features.unsqueeze(1), image_features.unsqueeze(0))
+#     sim = (sim + 1) / 2
+#     label_mask = labels[:, None] != labels[None, :]
+#     mask_sin = sim * label_mask
+#     return mask_sin
+# data=next(train_dataloader_iter)
+# print(get_cos_sim(data[-1],data[1]))
+
 def main(configs):
     training_steps = configs['steps'] * configs['training_epoch'] // configs['dataset']['train_batch_size']
     warmup_steps = configs['steps'] * configs['warmup_epoch'] // configs['dataset']['train_batch_size']
@@ -150,35 +159,24 @@ def main(configs):
                                      in_shardings=(train_state_sharding, sharding,),
                                      )
 
-        # sampler.sample_and_eval(state.ema_params)
+        fid=sampler.sample_and_eval(state.ema_params)
 
         train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
         train_dataloader_iter = iter(train_dataloader)
 
+
+
+        average_meter, max_val_acc1 = AverageMeter(use_latest=["learning_rate"]), 0.0
+
+        if jax.process_index() == 0:
+            wandb.init(name=configs['name'], project=configs['project'], config=configs)
+
+
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
             for _ in range(grad_accum_steps):
-                # def get_cos_sim(image_features, labels):
-                #     sim = torch.nn.CosineSimilarity(dim=-1)(image_features.unsqueeze(1), image_features.unsqueeze(0))
-                #     sim = (sim + 1) / 2
-                #     label_mask = labels[:, None] != labels[None, :]
-                #     mask_sin = sim * label_mask
-                #     return mask_sin
-                # data=next(train_dataloader_iter)
-                # print(get_cos_sim(data[-1],data[1]))
-
                 batch = jax.tree_util.tree_map(lambda x: jnp.array(np.asarray(x)), next(train_dataloader_iter))
                 batch = jtu.tree_map_with_path(partial(_form_global_array, global_mesh=mesh), batch)
-
                 state, metrics = training_step_pjit(state, batch, )
-
-                print(metrics['loss'].sharding)
-                print(metrics['chosen_rewards'].sharding)
-                print(metrics['rejected_rewards'].sharding)
-                print(metrics)
-                # print(state)
-            break
-
-            """
                 average_meter.update(**metrics)
 
 
@@ -195,9 +193,16 @@ def main(configs):
                 metrics["processed_samples"] = step * configs['dataset']['train_batch_size']
                 metrics["mix_ratio"] = mix_ratio_state.ratio
                 wandb.log(metrics, step)
+
+
+            
             if eval_interval > 0 and (
                     step % eval_interval == 0 or step == training_steps
             ):
+
+                fid=sampler.sample_and_eval(state.ema_params)
+
+                """
                 if valid_dataloader is None:
                     continue
                 del batch
