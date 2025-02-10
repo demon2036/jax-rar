@@ -116,8 +116,8 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             # guidance_scale = 8.0,
             # scale_pow = 1.2,
             # randomize_temperature=1.02
-        # guidance_scale = 16.0,
-        guidance_scale=0.0,
+        guidance_scale = 16.0,
+        # guidance_scale=0.0,
         scale_pow = 2.75,
         randomize_temperature = 1.0
 
@@ -130,6 +130,7 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
         return jax.random.choice(key, a=jnp.arange(0, logits.shape[0]), p=logits)
 
     vmap_choice = jax.vmap(choice)
+
 
     origin_key=key
     key,key_prefill,key_decode=jax.random.split(key[0],3)
@@ -243,7 +244,7 @@ class Sampler:
 
         self.fid_model=fid_model
         self.fid_model_params=fid_model_params
-        self.fid_eval_batch_size=2048
+        self.fid_eval_batch_size=4096
 
         def fid_apply_fn(x,params):
 
@@ -302,11 +303,9 @@ class Sampler:
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
-        # iters=10
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params)
             sample_img=process_allgather(sample_img)
-            print(sample_img.shape)
             data.append(np.array(sample_img))
 
         data = np.concatenate(data, axis=0)
@@ -317,13 +316,17 @@ class Sampler:
         return data
 
     def sample_and_eval(self,params):
-        # data=np.load('test2.npz')
-        # generated_image = data['arr_0']
-        # generated_image = self.sample(params, True)
-
         generated_image=self.sample(params,False)
         fid=self.computer_fid(generated_image)
         return fid
+
+
+
+
+
+
+
+
 
 
 
