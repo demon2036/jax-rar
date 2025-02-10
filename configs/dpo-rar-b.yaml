@@ -4,7 +4,7 @@ name: dpo-rar-b
 project: jax-dpo-rar
 steps: 1281167
 training_epoch: 500
-warmup_epoch: 20
+warmup_epoch: 0
 log_interval: 100
 eval_epoch: 1
 grad_accum_steps: 1
