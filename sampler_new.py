@@ -290,10 +290,10 @@ class Sampler:
                 size=(299,299),
                 resample=Image.BILINEAR,
             )
-            # img = np.array(img,dtype=np.float32) / 255.0
-            img = np.asarray(img, dtype=np.float32)
+            img = np.array(img,dtype=np.float32) / 255.0
+            # img = np.asarray(img, dtype=np.float32)
             images.append(img)
-        images=np.array(images)/ 255.0
+        # images=np.array(images)/ 255.0
         return images
 
 
@@ -398,7 +398,7 @@ class Sampler:
 
         print(scan_lists,len(scan_lists))
 
-        for scan_config in scan_lists:
+        for scan_config in tqdm.tqdm(scan_lists):
             for thread in threads:
                 thread.join()
 
