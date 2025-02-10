@@ -161,6 +161,8 @@ def main(configs):
                                      )
 
         fid=sampler.sample_and_eval(state.ema_params)
+        metrics = {'val/fid': fid}
+        wandb.log(metrics)
 
         train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
         train_dataloader_iter = iter(train_dataloader)
@@ -197,6 +199,9 @@ def main(configs):
             ):
 
                 fid=sampler.sample_and_eval(state.ema_params)
+                metrics={'val/fid':fid}
+                wandb.log(metrics)
+
 
                 """
                 if valid_dataloader is None:
