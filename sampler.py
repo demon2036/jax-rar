@@ -380,7 +380,7 @@ class Sampler:
 
         scan_lists=[]
 
-        for guidance_scale in scan_lists:
+        for guidance_scale in guidance_scales:
             for scale_pow in scale_pows:
                 scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': 1.0},)
 
@@ -401,7 +401,7 @@ class Sampler:
         for scan_config in scan_lists:
 
 
-            if len(threads)>3:
+            if len(threads)>5:
                 thread, threads = threads[0], threads[1:]
                 thread.join()
 
