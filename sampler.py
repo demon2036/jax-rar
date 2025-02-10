@@ -420,6 +420,7 @@ class Sampler:
             data,datas=datas[0],datas[1:]
             config,config_list=config_list[0],config_list[1:]
             fid = self.computer_fid(data,)
+            print('hi')
             if jax.process_count()==0:
                 print(config | {'fid':fid})
 
