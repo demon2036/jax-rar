@@ -401,7 +401,7 @@ class Sampler:
         for scan_config in scan_lists:
 
 
-            if len(threads)>5:
+            if len(threads)>1:
                 thread, threads = threads[0], threads[1:]
                 thread.join()
 
@@ -410,18 +410,13 @@ class Sampler:
                 data,datas=datas[0],datas[1:]
                 config,config_list=config_list[0],config_list[1:]
                 fid = self.computer_fid(data,)
-                if jax.process_count()==0:
-                    print(config | {'fid':fid})
+                print(config | {'fid':fid})
 
             generated_image = self.sample(params, False,**scan_config)
 
             thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
             thread.start()
             threads.append(thread)
-
-        for thread in threads:
-            thread.join()
-
 
 
 
@@ -433,14 +428,10 @@ class Sampler:
             data,datas=datas[0],datas[1:]
             config,config_list=config_list[0],config_list[1:]
             fid = self.computer_fid(data,)
-            print('hi')
-            if jax.process_count()==0:
-                print(config | {'fid':fid})
+            print(config | {'fid':fid})
 
-
-
-
-
+        for thread in threads:
+            thread.join()
 
 
 
