@@ -225,7 +225,7 @@ def sample( key,params,tokenizer_params,
 class Sampler:
 
     def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
-                 guidance_scale=1.5,
+                 guidance_scale=2.0,
                  scale_pow=0.0,
                  randomize_temperature=1.0
                  ):

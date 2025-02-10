@@ -330,7 +330,7 @@ class Sampler:
         mu1, sigma1 = self.compute_array_statistics(x)
         mu2, sigma2 = fid.compute_statistics("/root/VIRTUAL_imagenet256_labeled.npz", None,None,None,None)
         fid_score = fid.compute_frechet_distance(mu1, mu2, sigma1, sigma2, eps=1e-6)
-        # print('Fid:', fid_score)
+        print('Fid:', fid_score)
         return fid_score
 
 
@@ -402,10 +402,11 @@ class Sampler:
         for scan_config in tqdm.tqdm(scan_lists):
 
 
-            if len(threads)>5:
-                print('wait for thread')
+            if len(threads)>3:
+                print(f'wait for thread {len(datas)=}')
                 thread, threads = threads[0], threads[1:]
                 thread.join()
+                print(f'{len(datas)=}')
 
             # for thread in threads:
             #     thread.join()
@@ -417,8 +418,10 @@ class Sampler:
                 data,datas=datas[0],datas[1:]
                 config,config_list=config_list[0],config_list[1:]
                 fid = self.computer_fid(data,)
+                print()
                 print({'fid': fid})
                 print(config | {'fid':fid})
+                print()
 
             generated_image = self.sample(params, False,**scan_config)
 
