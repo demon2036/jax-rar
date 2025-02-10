@@ -160,7 +160,7 @@ def main(configs):
                                      in_shardings=(train_state_sharding, sharding,),
                                      )
 
-        fid=sampler.sample_and_eval(state.ema_params)
+        # fid=sampler.sample_and_eval(state.ema_params)
 
         train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
         train_dataloader_iter = iter(train_dataloader)
