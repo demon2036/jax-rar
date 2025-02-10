@@ -225,7 +225,6 @@ class Sampler:
                  guidance_scale=15.5,
                  scale_pow=2.5,
                  randomize_temperature=1.0
-
                  ):
         self.model=model
         self.tokenizer=tokenizer

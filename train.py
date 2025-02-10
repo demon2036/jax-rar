@@ -160,9 +160,7 @@ def main(configs):
                                      in_shardings=(train_state_sharding, sharding,),
                                      )
 
-        fid=sampler.sample_and_eval(state.ema_params)
-        metrics = {'val/fid': fid}
-        wandb.log(metrics)
+
 
         train_dataloader, valid_dataloader = create_dataloaders(**configs['dataset'], grad_accum=grad_accum_steps)
         train_dataloader_iter = iter(train_dataloader)
@@ -170,9 +168,12 @@ def main(configs):
 
 
         average_meter, max_val_acc1 = AverageMeter(use_latest=["learning_rate"]), 0.0
+        fid=sampler.sample_and_eval(state.ema_params)
 
         if jax.process_index() == 0:
             wandb.init(name=configs['name'], project=configs['project'], config=configs)
+            metrics = {'val/fid': fid}
+            wandb.log(metrics)
 
 
         for step in tqdm.tqdm(range(init_step, training_steps + 1), initial=init_step, total=training_steps + 1):
@@ -199,8 +200,9 @@ def main(configs):
             ):
 
                 fid=sampler.sample_and_eval(state.ema_params)
-                metrics={'val/fid':fid}
-                wandb.log(metrics)
+                if jax.process_index() == 0:
+                    metrics={'val/fid':fid}
+                    wandb.log(metrics)
 
 
                 """
