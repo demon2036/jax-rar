@@ -313,8 +313,8 @@ class Sampler:
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
                                                      guidance_scale,
-                                                     scale_pow=scale_pow,
-                                                     randomize_temperature=randomize_temperature,
+                                                     scale_pow,
+                                                     randomize_temperature,
                                                      )
             sample_img=process_allgather(sample_img)
             data.append(np.array(sample_img))
