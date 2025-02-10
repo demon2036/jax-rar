@@ -117,7 +117,6 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
             # scale_pow = 1.2,
             # randomize_temperature=1.02
         guidance_scale = 16.0,
-        # guidance_scale=0.0,
         scale_pow = 2.75,
         randomize_temperature = 1.0
 
@@ -222,7 +221,12 @@ def sample( key,params,tokenizer_params, model,tokenizer_jax, config, batch_size
 
 class Sampler:
 
-    def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None):
+    def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
+                 guidance_scale=15.5,
+                 scale_pow=2.5,
+                 randomize_temperature=1.0
+
+                 ):
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
@@ -234,7 +238,11 @@ class Sampler:
         self.batch_size=batch_size
 
 
-        sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer)
+        sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
+                            guidance_scale=guidance_scale,
+                            scale_pow=scale_pow,
+                            randomize_temperature=randomize_temperature,
+                            )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
             P('dp'), P(None), P(None)
         ),
