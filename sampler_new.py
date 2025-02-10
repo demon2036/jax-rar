@@ -399,15 +399,6 @@ class Sampler:
         print(scan_lists,len(scan_lists))
 
         for scan_config in scan_lists:
-
-            #
-            # if len(threads)>1:
-            #     thread, threads = threads[0], threads[1:]
-            #     thread.join()
-            #
-            #
-            # print(scan_config,f'{len(datas)=}   {threads=}',)
-
             for thread in threads:
                 thread.join()
 
@@ -418,6 +409,7 @@ class Sampler:
                 data,datas=datas[0],datas[1:]
                 config,config_list=config_list[0],config_list[1:]
                 fid = self.computer_fid(data,)
+                print({'fid': fid})
                 print(config | {'fid':fid})
 
             generated_image = self.sample(params, False,**scan_config)
@@ -429,13 +421,13 @@ class Sampler:
         print('go')
 
         while len(datas)>0 or len(threads)>0:
-
             thread,threads=threads[0],threads[1:]
             thread.join()
 
             data,datas=datas[0],datas[1:]
             config,config_list=config_list[0],config_list[1:]
             fid = self.computer_fid(data,)
+            print({'fid':fid})
             print(config | {'fid':fid})
 
         for thread in threads:
