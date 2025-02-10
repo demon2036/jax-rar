@@ -43,5 +43,6 @@ class TrainState(train_state.TrainState):
     def split_rngs(self) -> tuple[ArrayTree, ArrayTree]:
         dropout_rng, new_dropout_rng = jax.random.split(self.dropout_rng)
         rngs = { "dropout": dropout_rng,}
-        updates = { "dropout_rng": new_dropout_rng, }
+        # updates = { "dropout_rng": new_dropout_rng, }
+        updates = {"dropout": new_dropout_rng, }
         return rngs, updates

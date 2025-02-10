@@ -60,6 +60,10 @@ class TrainModule(nn.Module):
         # orders: Optional[jnp.ndarray] = None,
         # is_sampling: bool = True
 
+
+        labels=self.model.preprocess_condition(labels,self.make_rng('dropout'))
+
+
         mask_sin=get_cos_sim(dino_feature,labels)
         # print(mask_sin)
 
@@ -70,7 +74,6 @@ class TrainModule(nn.Module):
 
         chosen_ids=tokens
         rejected_ids=rejected_token
-
 
         # jax.debug.print("{bar}  {pair_label} {labels}", bar=mask_sin,pair_label=pair_label ,labels=labels)
         # print(f'{rejected_token.shape=}')
@@ -113,7 +116,6 @@ class TrainModule(nn.Module):
         rejected_rewards = self.beta * rejected_logratios
         reward_accuracies = (chosen_rewards > rejected_rewards).astype(jnp.float32)
 
-        # print(chosen_rewards.shape)
 
         return {'loss':loss,'chosen_rewards':chosen_rewards.mean(),'rejected_rewards':rejected_rewards.mean(),'reward_accuracies':reward_accuracies.mean()}
         # return self.model(tokens, det=det)

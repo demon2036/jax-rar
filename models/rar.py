@@ -587,13 +587,9 @@ class FlaxRAR(nn.Module):
         labels = input_ids.copy()
 
 
-
-
         # 将 condition 展开为 [B, condition_tokens] 并拼接到 input_ids 前
         # 此处假设 condition 已经是合适 shape
         input_ids = jnp.concatenate([condition.reshape(B, -1), input_ids.reshape(B, -1)], axis=1)
-
-
 
 
         # 获取 token embedding
