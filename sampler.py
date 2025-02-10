@@ -283,7 +283,8 @@ class Sampler:
     def preprocess_image_to_fid_eval(self,x):
         data=x
         images = []
-        for img in tqdm.tqdm(data):
+        # for img in tqdm.tqdm(data):
+        for img in data:
             img=PIL.Image.fromarray(img)
             img = img.resize(
                 size=(299,299),
@@ -377,6 +378,15 @@ class Sampler:
         guidance_scales=[1.5,2.0,3.0,4.0,5.0]
         scale_pows=[0.5,0.75,1,2,4]
 
+        scan_lists=[]
+
+        for guidance_scale in scan_lists:
+            for scale_pow in scale_pows:
+                scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': 1.0},)
+
+
+
+
 
         datas=[]
         config_list=[]
@@ -391,6 +401,9 @@ class Sampler:
         for scan_config in scan_lists:
 
 
+            if len(threads)>3:
+                thread, threads = threads[0], threads[1:]
+                thread.join()
 
 
             if len(datas)>0:
