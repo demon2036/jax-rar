@@ -399,6 +399,7 @@ class Sampler:
 
 
         for scan_config in scan_lists:
+            print(scan_config,f'{len(datas)=}')
 
 
             if len(threads)>1:
