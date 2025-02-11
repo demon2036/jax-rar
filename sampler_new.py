@@ -33,7 +33,7 @@ from utils.generate_utils import create_npz_from_np, collect_process_data
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     # local_dir= '../'
     local_dir= '/root/'
 
@@ -372,8 +372,10 @@ class Sampler:
 
     def sample_and_eval(self,params):
         generated_image=self.sample(params,False)
-        generated_image=self.preprocess_image_to_fid_eval(generated_image)
-        fid=self.computer_fid(generated_image)
+        data=self.preprocess_image_to_fid_eval(generated_image)
+        data = process_allgather(data)
+        data = np.concatenate(data, axis=0)
+        fid=self.computer_fid(data)
         return fid
 
 
@@ -471,8 +473,8 @@ def main():
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
     sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
-    # sampler.sample_and_eval(model_params)
-    sampler.scan_sample_and_eval(model_params)
+    sampler.sample_and_eval(model_params)
+    # sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
 
 

@@ -35,7 +35,8 @@ def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
     # local_dir= '../'
-    local_dir= '/root/'
+    # local_dir= '/root/'
+    local_dir = 'torch_model_weight/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -135,6 +136,7 @@ def sample( key,params,tokenizer_params,
     origin_key=key
     key,key_prefill,key_decode=jax.random.split(key[0],3)
     condition = jax.random.randint(key, (batch_size, 1), 0, 1000)
+    condition=condition.at[:].set(2)
 
     num_samples = batch_size
 
@@ -144,7 +146,7 @@ def sample( key,params,tokenizer_params,
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
 
-    cfg_scale=cfg_scale.at[200:].set(2)
+    cfg_scale=cfg_scale.at[:16].set(5)
 
     max_cache_length = 256
     cache = init_cache(config,
@@ -271,6 +273,7 @@ class Sampler:
         )
 
         self.fid_apply_fn_jit=jax.jit(self.fid_apply_fn,)
+        self.count=0
 
 
     def preprocess_image_to_fid_eval(self,x):
@@ -317,14 +320,14 @@ class Sampler:
         return fid_score
 
 
-    def sample(self,params,save_npz=False,
-
+    def sample(self,params,save_npz=False,iters=None
                ):
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
         # iters = 100
-        iters = 51200//(jax.device_count()*self.batch_size)
+        iters = 51200//(jax.device_count()*self.batch_size) if iters is None else iters
+
         for _ in tqdm.tqdm(range(iters)):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
                                                      )
@@ -333,9 +336,9 @@ class Sampler:
 
         data = np.concatenate(data, axis=0)
         if save_npz:
-            create_npz_from_np('./test2', data)
+            # create_npz_from_np('./test2', data)
             os.makedirs('assets',exist_ok=True)
-            Image.fromarray(data[0]).save(f"assets/rar_generated_{1}.png")
+            Image.fromarray(data[0]).save(f"assets/rar_generated_{self.count}.png")
         return data
 
     def sample_and_eval(self,params):
@@ -429,9 +432,11 @@ def main():
     model_params,tokenizer_params,model,tokenizer_jax,rar_config = init_model()
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
-    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
-    # sampler.sample_and_eval(model_params)
-    sampler.scan_sample_and_eval(model_params)
+    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,1,fid_model,fid_model_params,)
+    sampler.count=1
+    # sampler.sample(model_params,True,1)
+    sampler.sample_and_eval(model_params)
+    # sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
 
 

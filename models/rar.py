@@ -449,12 +449,9 @@ class FlaxRAR(nn.Module):
         x: [B, seq_len, ...]，orders: [B, seq_len]
         返回按 orders 重新排列后的 x
         """
-
         batch_size, seq_len = x.shape[:2]
         batch_indices = jnp.arange(0,batch_size)[...,None]
         shuffled_x = x[batch_indices, orders]
-
-
         return shuffled_x
 
     def unshuffle(self, shuffled_x: jnp.ndarray, orders: jnp.ndarray) -> jnp.ndarray:
