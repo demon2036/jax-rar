@@ -334,9 +334,9 @@ class Sampler:
         return fid_score
 
 
-    def sample(self,params,save_npz=False, guidance_scale=4.0,
-                            scale_pow=1.0,
-                            randomize_temperature=1.0,):
+    def sample(self,params,save_npz=False, guidance_scale=8.0,
+                            scale_pow=1.02,
+                            randomize_temperature=1.02,):
         print('sample')
         # 构造 rngs 字典
         sample_rng=self.sample_rng
