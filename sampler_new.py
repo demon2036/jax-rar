@@ -248,7 +248,7 @@ class Sampler:
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
-        self.rng=rng = jax.random.PRNGKey(42)
+        self.rng=rng = jax.random.PRNGKey(0)
         sample_rng, dropout_rng = jax.random.split(rng)
         self.sample_rng = jax.random.split(sample_rng, jax.device_count())
         physical_mesh = mesh_utils.create_device_mesh((jax.device_count(),))
