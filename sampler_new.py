@@ -143,7 +143,8 @@ def sample( key,params,tokenizer_params,
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-    cfg_scale=cfg_scale.at[200:].set(6)
+    cfg_scale=cfg_scale.at[200:].set(5)
+    # cfg_scale=cfg_scale.at[200:].set(6)
 
     max_cache_length = 256
     cache = init_cache(config,
