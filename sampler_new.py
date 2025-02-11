@@ -28,7 +28,7 @@ from jax.sharding import PartitionSpec as P ,NamedSharding,Mesh
 
 from jax.experimental.shard_map import shard_map
 
-from utils.generate_utils import create_npz_from_np
+from utils.generate_utils import create_npz_from_np, collect_process_data
 
 
 def init_model():
@@ -350,14 +350,24 @@ class Sampler:
                                                      scale_pow,
                                                      randomize_temperature,
                                                      )
-            sample_img=process_allgather(sample_img)
-            data.append(np.array(sample_img))
 
-        data = np.concatenate(data, axis=0)
+            # collect_process_data
+            # sample_img=process_allgather(sample_img)
+            # data.append(np.array(sample_img))
+            data.append(sample_img)
+
+
         if save_npz:
+            data = np.concatenate(data, axis=0)
             create_npz_from_np('./test2', data)
             os.makedirs('assets',exist_ok=True)
             Image.fromarray(data[0]).save(f"assets/rar_generated_{1}.png")
+        else:
+            temp=[]
+            for _ in data:
+                temp.append(collect_process_data(_))
+            data=np.concatenate(temp,axis=0)
+        print(data.shape)
         return data
 
     def sample_and_eval(self,params):
