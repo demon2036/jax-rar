@@ -28,7 +28,7 @@ from jax.sharding import PartitionSpec as P ,NamedSharding,Mesh
 
 from jax.experimental.shard_map import shard_map
 
-from utils.generate_utils import create_npz_from_np
+from utils.generate_utils import create_npz_from_np, collect_process_data
 
 
 def init_model():
@@ -143,9 +143,6 @@ def sample( key,params,tokenizer_params,
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-
-    cfg_scale=cfg_scale.at[200:].set(2)
-
     max_cache_length = 256
     cache = init_cache(config,
                        num_samples,
@@ -158,15 +155,20 @@ def sample( key,params,tokenizer_params,
     condition_jax = condition + 1024 + 1
     none_condition = model.apply({'params': params}, condition_jax, method=model.get_none_condition)
 
+    c = jnp.concat([condition_jax, none_condition], axis=0)
+    logits, cache = prefill_jit({'params': params}, c,
+                                cache, attn_mask=attn_mask)
+    cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
 
-    if guidance_scale != 0:
-        c = jnp.concat([condition_jax, none_condition], axis=0)
-        logits, cache = prefill_jit({'params': params}, c,
-                                    cache, attn_mask=attn_mask)
-        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
-    else:
-        logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
+    # if guidance_scale != 0:
+    #     c = jnp.concat([condition_jax, none_condition], axis=0)
+    #     logits, cache = prefill_jit({'params': params}, c,
+    #                                 cache, attn_mask=attn_mask)
+    #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+    #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[0]
+    # else:
+    #     logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
 
     token_buffer = jnp.zeros((batch_size, 256), jnp.int32)
 
@@ -187,18 +189,26 @@ def sample( key,params,tokenizer_params,
         last_token=sample_state.token_buffer[:,i]
         last_token=last_token.reshape((sample_state.token_buffer.shape[0],1))
 
-        if guidance_scale != 0:
-            logits, cache = decode_jit({'params': params},
-                                       jnp.concat([last_token,last_token], axis=0),
-                                       jnp.concat([condition_jax, none_condition], axis=0),
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        logits, cache = decode_jit({'params': params},
+                                   jnp.concat([last_token, last_token], axis=0),
+                                   jnp.concat([condition_jax, none_condition], axis=0),
+                                   sample_state.position_ids, sample_state.cache, sample_state.attn_mask, )
 
+        cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
 
-            cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-            logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
-        else:
-            logits, cache = decode_jit({'params': params},last_token, condition_jax,
-                                       sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
+        # if guidance_scale != 0:
+        #     logits, cache = decode_jit({'params': params},
+        #                                jnp.concat([last_token,last_token], axis=0),
+        #                                jnp.concat([condition_jax, none_condition], axis=0),
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask,)
+        #
+        #
+        #     cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
+        #     logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
+        # else:
+        #     logits, cache = decode_jit({'params': params},last_token, condition_jax,
+        #                                sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
 
         sample_state.key, key_sample = jax.random.split(sample_state.key)
         next_token = vmap_choice(logits[:, -1], jax.random.split(key_sample, logits.shape[0]))
@@ -228,8 +238,8 @@ def sample( key,params,tokenizer_params,
 class Sampler:
 
     def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
-                 guidance_scale=16.0,
-                 scale_pow=2.75,
+                 guidance_scale=15.5,
+                 scale_pow=2.5,
                  randomize_temperature=1.0
                  ):
         self.model=model
@@ -244,12 +254,9 @@ class Sampler:
 
 
         sample_fn = partial(sample, model=model, config=rar_config, batch_size=batch_size, tokenizer_jax=tokenizer,
-                            guidance_scale=guidance_scale,
-                            scale_pow=scale_pow,
-                            randomize_temperature=randomize_temperature,
                             )
         sample_fn = shard_map(sample_fn, mesh=mesh, in_specs=(
-            P('dp'), P(None), P(None)
+            P('dp'), P(None), P(None),P(),P(),P()
         ),
             out_specs=P('dp')
 
@@ -283,20 +290,30 @@ class Sampler:
                 size=(299,299),
                 resample=Image.BILINEAR,
             )
-            # img = np.array(img,dtype=np.float32) / 255.0
-            img = np.asarray(img, dtype=np.float32)
+            img = np.array(img,dtype=np.float32) / 255.0
+            # img = np.asarray(img, dtype=np.float32)
             images.append(img)
-        images=np.array(images)/ 255.0
+        # images=np.array(images)/ 255.0
         return images
 
 
     def compute_array_statistics(self,images):
-
+        # data=x
+        # images = []
+        # for img in tqdm.tqdm(data):
+        #     img=PIL.Image.fromarray(img)
+        #     img = img.resize(
+        #         size=(299,299),
+        #         resample=Image.BILINEAR,
+        #     )
+        #     img = np.array(img,dtype=np.float32) / 255.0
+        #     images.append(img)
+        print('cal inception')
         num_batches = int(len(images) // self.fid_eval_batch_size)
         act = []
-        for i in tqdm.tqdm(range(num_batches)):
+        # for i in tqdm.tqdm(range(num_batches)):
+        for i in range(num_batches):
             x = images[i * self.fid_eval_batch_size: i * self.fid_eval_batch_size + self.fid_eval_batch_size]
-
             x = np.asarray(x)
             x = 2 * x - 1
             pred = self.fid_apply_fn_jit(jax.lax.stop_gradient(x),self.fid_model_params)
@@ -313,29 +330,44 @@ class Sampler:
         mu1, sigma1 = self.compute_array_statistics(x)
         mu2, sigma2 = fid.compute_statistics("/root/VIRTUAL_imagenet256_labeled.npz", None,None,None,None)
         fid_score = fid.compute_frechet_distance(mu1, mu2, sigma1, sigma2, eps=1e-6)
-        # print('Fid:', fid_score)
+        print('Fid:', fid_score)
         return fid_score
 
 
-    def sample(self,params,save_npz=False,
-
-               ):
+    def sample(self,params,save_npz=False, guidance_scale=4.0,
+                            scale_pow=1.0,
+                            randomize_temperature=1.0,):
+        print('sample')
         # 构造 rngs 字典
         sample_rng=self.sample_rng
         data = []
         # iters = 100
         iters = 51200//(jax.device_count()*self.batch_size)
-        for _ in tqdm.tqdm(range(iters)):
+        # for _ in tqdm.tqdm(range(iters)):
+        for _ in range(iters):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
+                                                     guidance_scale,
+                                                     scale_pow,
+                                                     randomize_temperature,
                                                      )
-            sample_img=process_allgather(sample_img)
-            data.append(np.array(sample_img))
 
-        data = np.concatenate(data, axis=0)
+            # collect_process_data
+            # sample_img=process_allgather(sample_img)
+            # data.append(np.array(sample_img))
+            data.append(sample_img)
+
+
         if save_npz:
+            data = np.concatenate(data, axis=0)
             create_npz_from_np('./test2', data)
             os.makedirs('assets',exist_ok=True)
             Image.fromarray(data[0]).save(f"assets/rar_generated_{1}.png")
+        else:
+            temp=[]
+            for _ in data:
+                temp.append(collect_process_data(_))
+            data=np.concatenate(temp,axis=0)
+        print(data.shape)
         return data
 
     def sample_and_eval(self,params):
@@ -348,23 +380,21 @@ class Sampler:
 
     def scan_sample_and_eval(self,params):
 
-        scan_lists=[
-            {'guidance_scale':4.0,'scale_pow':2.0,'randomize_temperature':1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 1.0, 'randomize_temperature': 1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 2.0, 'randomize_temperature': 1.0},
-            {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
-        ]
+        # scan_lists=[
+        #     {'guidance_scale':4.0,'scale_pow':2.0,'randomize_temperature':1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 1.0, 'randomize_temperature': 1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 2.0, 'randomize_temperature': 1.0},
+        #     {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
+        # ]
 
-        guidance_scales=[1.5,2.0,3.0,4.0,5.0]
-        scale_pows=[0.5,0.75,1,2,4]
+        guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0,5.5]
+        scale_pows=[0.0,0.5,0.75,1,2,4]
 
         scan_lists=[]
 
         for guidance_scale in guidance_scales:
             for scale_pow in scale_pows:
                 scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': 1.0},)
-
-
 
 
 
@@ -377,51 +407,59 @@ class Sampler:
             datas.append(generated_image)
             config_list.append(config)
 
+        print(scan_lists,len(scan_lists))
 
-        for scan_config in scan_lists:
+        for scan_config in tqdm.tqdm(scan_lists):
 
-
-            if len(threads)>5:
-                thread, threads = threads[0], threads[1:]
-                thread.join()
-
-
-            if len(datas)>0:
-                data,datas=datas[0],datas[1:]
-                config,config_list=config_list[0],config_list[1:]
-                fid = self.computer_fid(data,)
-                if jax.process_count()==0:
-                    print(config | {'fid':fid})
+            #
+            # if len(threads)>3:
+            #     print(f'wait for thread {len(datas)=}')
+            #     thread, threads = threads[0], threads[1:]
+            #     thread.join()
+            #     print(f'{len(datas)=}')
+            #
+            # # for thread in threads:
+            # #     thread.join()
+            #
+            # # threads=[]
+            #
+            #
+            # if len(datas)>0:
+            #     data,datas=datas[0],datas[1:]
+            #     config,config_list=config_list[0],config_list[1:]
+            #     fid = self.computer_fid(data,)
+            #     print()
+            #     print({'fid': fid})
+            #     print(config | {'fid':fid})
+            #     print()
 
             generated_image = self.sample(params, False,**scan_config)
+            data = self.preprocess_image_to_fid_eval(generated_image)
+            fid = self.computer_fid(data, )
+            print()
+            print({'fid': fid})
+            print(scan_config | {'fid': fid})
+            print()
 
-            thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
-            thread.start()
-            threads.append(thread)
-
-        for thread in threads:
-            thread.join()
-
-
-
-
-        while len(datas)>0 or len(threads)>0:
-
-            thread,threads=threads[0],threads[1:]
-            thread.join()
-
-            data,datas=datas[0],datas[1:]
-            config,config_list=config_list[0],config_list[1:]
-            fid = self.computer_fid(data,)
-            print('hi')
-            if jax.process_count()==0:
-                print(config | {'fid':fid})
-
-
-
-
-
-
+        #     thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
+        #     thread.start()
+        #     threads.append(thread)
+        #
+        # print('here we finish')
+        #
+        # while len(datas)>0 or len(threads)>0:
+        #     thread,threads=threads[0],threads[1:]
+        #     thread.join()
+        #
+        #     data,datas=datas[0],datas[1:]
+        #     config,config_list=config_list[0],config_list[1:]
+        #     fid = self.computer_fid(data,)
+        #     print({'fid':fid})
+        #     print(config | {'fid':fid})
+        #
+        #
+        #
+        # print('here we finish final')
 
 
 def main():
