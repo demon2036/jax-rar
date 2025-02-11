@@ -478,8 +478,8 @@ def main():
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
     sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
-    sampler.sample_and_eval(model_params)
-    # sampler.scan_sample_and_eval(model_params)
+    # sampler.sample_and_eval(model_params)
+    sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
 
 
