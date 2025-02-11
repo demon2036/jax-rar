@@ -35,8 +35,8 @@ def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
     rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
     # local_dir= '../'
-    # local_dir= '/root/'
-    local_dir = 'torch_model_weight/'
+    local_dir= '/root/'
+    # local_dir = 'torch_model_weight/'
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -146,7 +146,7 @@ def sample( key,params,tokenizer_params,
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
 
-    cfg_scale=cfg_scale.at[0].set(1)
+    # cfg_scale=cfg_scale.at[0].set(1)
 
     max_cache_length = 256
     cache = init_cache(config,

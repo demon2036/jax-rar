@@ -4,7 +4,9 @@ from functools import partial
 from typing import Any
 
 import PIL
+import einops
 import torch
+import torchvision.utils
 import tqdm
 from PIL import Image
 import numpy as np
@@ -33,10 +35,10 @@ from utils.generate_utils import create_npz_from_np, collect_process_data
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
     # local_dir= '../'
-    local_dir= '/root/'
-
+    # local_dir= '/root/'
+    local_dir = 'torch_model_weight/'
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
         num_resolutions = 5
@@ -135,6 +137,7 @@ def sample( key,params,tokenizer_params,
     origin_key=key
     key,key_prefill,key_decode=jax.random.split(key[0],3)
     condition = jax.random.randint(key, (batch_size, 1), 0, 1000)
+    condition=condition.at[0].set(2)
 
     num_samples = batch_size
 
@@ -248,7 +251,8 @@ class Sampler:
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
-        self.rng=rng = jax.random.PRNGKey(0)
+        # self.rng=rng = jax.random.PRNGKey(0)
+        self.rng = rng = jax.random.PRNGKey(42)
         sample_rng, dropout_rng = jax.random.split(rng)
         self.sample_rng = jax.random.split(sample_rng, jax.device_count())
         physical_mesh = mesh_utils.create_device_mesh((jax.device_count(),))
@@ -345,9 +349,10 @@ class Sampler:
         sample_rng=self.sample_rng
         data = []
         # iters = 100
-        iters = 51200//(jax.device_count()*self.batch_size)
-        # for _ in tqdm.tqdm(range(iters)):
-        for _ in range(iters):
+        # iters = 51200//(jax.device_count()*self.batch_size)
+        iters = 1
+        for _ in tqdm.tqdm(range(iters)):
+        # for _ in range(iters):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
                                                      guidance_scale,
                                                      scale_pow,
@@ -359,22 +364,25 @@ class Sampler:
             # data.append(np.array(sample_img))
             data.append(sample_img)
 
+        temp = []
+        for _ in data:
+            temp.append(collect_process_data(_))
+        data = np.concatenate(temp, axis=0)
 
         if save_npz:
-            data = np.concatenate(data, axis=0)
-            create_npz_from_np('./test2', data)
+            # data = np.concatenate(data, axis=0)
+            # create_npz_from_np('./test2', data)
             os.makedirs('assets',exist_ok=True)
             Image.fromarray(data[0]).save(f"assets/rar_generated_{1}.png")
-        else:
-            temp=[]
-            for _ in data:
-                temp.append(collect_process_data(_))
-            data=np.concatenate(temp,axis=0)
+
+            # data=einops.rearrange(data)
+            # torchvision.utils.save_image(,f"assets/rar_generated_{1}.png")
+
         print(data.shape)
         return data
 
     def sample_and_eval(self,params):
-        generated_image=self.sample(params,False)
+        generated_image=self.sample(params,True)
         data=self.preprocess_image_to_fid_eval(generated_image)
         data = process_allgather(data)
         data = np.concatenate(data, axis=0)
@@ -394,6 +402,7 @@ class Sampler:
 
         guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0]
         scale_pows=[0.0,0.5,0.75,1,2]
+        scale_pows=[0.0,0.1,0.2,0.3,0.4,0.5,]
         randomize_temperatures=[0.9,1.0,1.02,1.05,1.1,1.2]
 
         scan_lists=[]
@@ -478,6 +487,7 @@ def main():
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
     sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
+    # sampler.sample(model_params,True,scale_pow=0.5,randomize_temperature=1.0,guidance_scale=1.5)
     # sampler.sample_and_eval(model_params)
     sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
