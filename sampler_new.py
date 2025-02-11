@@ -411,34 +411,34 @@ class Sampler:
 
         for scan_config in tqdm.tqdm(scan_lists):
 
-
-            if len(threads)>3:
-                print(f'wait for thread {len(datas)=}')
-                thread, threads = threads[0], threads[1:]
-                thread.join()
-                print(f'{len(datas)=}')
-
-            # for thread in threads:
+            #
+            # if len(threads)>3:
+            #     print(f'wait for thread {len(datas)=}')
+            #     thread, threads = threads[0], threads[1:]
             #     thread.join()
-
-            # threads=[]
-
-
-            if len(datas)>0:
-                data,datas=datas[0],datas[1:]
-                config,config_list=config_list[0],config_list[1:]
-                fid = self.computer_fid(data,)
-                print()
-                print({'fid': fid})
-                print(config | {'fid':fid})
-                print()
+            #     print(f'{len(datas)=}')
+            #
+            # # for thread in threads:
+            # #     thread.join()
+            #
+            # # threads=[]
+            #
+            #
+            # if len(datas)>0:
+            #     data,datas=datas[0],datas[1:]
+            #     config,config_list=config_list[0],config_list[1:]
+            #     fid = self.computer_fid(data,)
+            #     print()
+            #     print({'fid': fid})
+            #     print(config | {'fid':fid})
+            #     print()
 
             generated_image = self.sample(params, False,**scan_config)
-            generated_image = self.preprocess_image_to_fid_eval(generated_image)
+            data = self.preprocess_image_to_fid_eval(generated_image)
             fid = self.computer_fid(data, )
             print()
             print({'fid': fid})
-            print(config | {'fid': fid})
+            print(scan_config | {'fid': fid})
             print()
 
         #     thread=threading.Thread(target=thread_process_img,args=(generated_image,scan_config,datas,config_list))
