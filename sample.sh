@@ -18,6 +18,7 @@ for script in "${SCRIPT_PATHS[@]}"; do
 #    python -u convert_vqgan_torch_to_flax.py
 #    python -u main_adv.py --yaml-path $script
 #    python -u main.py --yaml-path $script
-      python sampler_new_merge_kv.py ;
+#      python sampler_new_merge_kv.py ;
+    python sampler_new.py ;
 
 done
