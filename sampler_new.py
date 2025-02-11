@@ -144,6 +144,7 @@ def sample( key,params,tokenizer_params,
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
     cfg_scale=cfg_scale.at[200:].set(5)
+    cfg_scale=cfg_scale.at[150:200].set(4)
     # cfg_scale=cfg_scale.at[200:].set(6)
 
     max_cache_length = 256
