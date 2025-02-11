@@ -136,7 +136,7 @@ def sample( key,params,tokenizer_params,
     origin_key=key
     key,key_prefill,key_decode=jax.random.split(key[0],3)
     condition = jax.random.randint(key, (batch_size, 1), 0, 1000)
-    condition=condition.at[:200].set(16)
+    # condition=condition.at[:200].set(16)
 
     num_samples = batch_size
 
