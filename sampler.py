@@ -136,7 +136,7 @@ def sample( key,params,tokenizer_params,
     origin_key=key
     key,key_prefill,key_decode=jax.random.split(key[0],3)
     condition = jax.random.randint(key, (batch_size, 1), 0, 1000)
-    # condition=condition.at[:200].set(16)
+    condition=condition.at[0].set(2)
 
     num_samples = batch_size
 
@@ -337,12 +337,13 @@ class Sampler:
     def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
                  guidance_scale=16.0,
                  scale_pow=2.75,
-                 randomize_temperature=1.0
+                 randomize_temperature=1.0,
+                 key=43
                  ):
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
-        self.rng=rng = jax.random.PRNGKey(42)
+        self.rng=rng = jax.random.PRNGKey(key)
         sample_rng, dropout_rng = jax.random.split(rng)
         self.sample_rng = jax.random.split(sample_rng, jax.device_count())
         physical_mesh = mesh_utils.create_device_mesh((jax.device_count(),))

@@ -199,7 +199,7 @@ def sample( key,params,tokenizer_params,
 
         cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
         logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
-        logits = jnp.where(i > 60, cond_logits, logits)
+        logits = jnp.where(i > 192, cond_logits, logits)
 
         # if guidance_scale != 0:
         #     logits, cache = decode_jit({'params': params},
