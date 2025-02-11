@@ -62,7 +62,7 @@ class TrainModule(nn.Module):
 
         #
         # condition=self.model.preprocess_condition(labels,self.make_rng('dropout'),cond_drop_prob=0.1)
-        condition = self.model.preprocess_condition(labels, self.make_rng('dropout'), cond_drop_prob=0.5)
+        condition = self.model.preprocess_condition(labels, self.make_rng('dropout'), cond_drop_prob=0.1)
         logits=self.model.train_dpo(tokens, condition)
         loss_ce=optax.softmax_cross_entropy_with_integer_labels(logits[:,:-1],tokens).mean()
         # return {'loss':loss.mean()}
