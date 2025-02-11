@@ -403,7 +403,8 @@ class Sampler:
         guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0]
         # scale_pows=[0.0,0.5,0.75,1,2]
         scale_pows=[0.0,0.1,0.2,0.3,0.4,0.5,]
-        randomize_temperatures=[0.8,0.9,1.0,1.02,1.05,1.1,1.2]
+        # randomize_temperatures=[0.8,0.9,1.0,1.02,1.05,1.1,1.2]
+        randomize_temperatures=[1]
 
         scan_lists=[]
 
