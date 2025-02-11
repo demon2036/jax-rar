@@ -143,7 +143,7 @@ def sample( key,params,tokenizer_params,
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-    # cfg_scale=cfg_scale.at[180:].set(10)
+    cfg_scale=cfg_scale.at[256-16:].set(200)
 
     max_cache_length = 256
     cache = init_cache(config,
@@ -199,7 +199,7 @@ def sample( key,params,tokenizer_params,
 
         cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
         logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
-        logits = jnp.where(i > 192, cond_logits, logits)
+        # logits = jnp.where(i > 192, cond_logits, logits)
 
         # if guidance_scale != 0:
         #     logits, cache = decode_jit({'params': params},
