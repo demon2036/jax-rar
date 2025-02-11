@@ -35,10 +35,10 @@ from utils.generate_utils import create_npz_from_np, collect_process_data
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     # local_dir= '../'
-    # local_dir= '/root/'
-    local_dir = 'torch_model_weight/'
+    local_dir= '/root/'
+    # local_dir = 'torch_model_weight/'
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
         num_resolutions = 5
@@ -349,8 +349,8 @@ class Sampler:
         sample_rng=self.sample_rng
         data = []
         # iters = 100
-        # iters = 51200//(jax.device_count()*self.batch_size)
-        iters = 1
+        iters = 51200//(jax.device_count()*self.batch_size)
+        # iters = 1
         for _ in tqdm.tqdm(range(iters)):
         # for _ in range(iters):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
@@ -401,7 +401,7 @@ class Sampler:
         # ]
 
         guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0]
-        scale_pows=[0.0,0.5,0.75,1,2]
+        # scale_pows=[0.0,0.5,0.75,1,2]
         scale_pows=[0.0,0.1,0.2,0.3,0.4,0.5,]
         randomize_temperatures=[0.9,1.0,1.02,1.05,1.1,1.2]
 
