@@ -16,7 +16,7 @@ from huggingface_hub import hf_hub_download
 
 from models.maskgit_vqgan import PretrainedTokenizer
 from convert_model_torch_to_flax.convert_vqgan_torch_to_flax import convert_vqgan_state_dict
-from models.rar import FlaxRAR, convert_torch_to_flax_rar, init_cache, FlaxRARConfig
+from models.rar_merge_kv import FlaxRAR, convert_torch_to_flax_rar, init_cache, FlaxRARConfig
 from pytorch_rar.utils.train_utils import create_pretrained_tokenizer
 from jax.experimental.multihost_utils import process_allgather
 import jax
@@ -147,8 +147,8 @@ def sample( key,params,tokenizer_params,
 
     max_cache_length = 256
     cache = init_cache(config,
-                       # num_samples,
-                       num_samples * 2,
+                       num_samples,
+                       # num_samples * 2,
                        # num_samples * 2 if guidance_scale != 0 else num_samples,
                        max_cache_length=max_cache_length, dtype=jnp.bfloat16)
 
@@ -392,14 +392,16 @@ class Sampler:
         #     {'guidance_scale': 2.0, 'scale_pow': 0.5, 'randomize_temperature': 1.0},
         # ]
 
-        guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0,5.5]
-        scale_pows=[0.0,0.5,0.75,1,2,4]
+        guidance_scales=[1.5,2.0,2.5,3.0,4.0,4.5,5.0]
+        scale_pows=[0.0,0.5,0.75,1,2]
+        randomize_temperatures=[0.9,1.0,1.02,1.05,1.1,1.2]
 
         scan_lists=[]
 
         for guidance_scale in guidance_scales:
             for scale_pow in scale_pows:
-                scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': 1.0},)
+                for randomize_temperature in randomize_temperatures:
+                    scan_lists.append({'guidance_scale': guidance_scale, 'scale_pow': scale_pow, 'randomize_temperature': randomize_temperature},)
 
 
 
