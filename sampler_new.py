@@ -338,7 +338,7 @@ class Sampler:
 
 
     def sample(self,params,save_npz=False, guidance_scale=8.0,
-                            scale_pow=1.02,
+                            scale_pow=1.2,
                             randomize_temperature=1.02,):
         print('sample')
         # 构造 rngs 字典
