@@ -436,6 +436,7 @@ class Sampler:
             generated_image = self.sample(params, False,**scan_config)
             data = self.preprocess_image_to_fid_eval(generated_image)
             data=process_allgather(data)
+            data=np.concatenate(data,axis=0)
             print(f'{data.shape=}')
             fid = self.computer_fid(data, )
             print()
