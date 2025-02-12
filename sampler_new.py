@@ -143,7 +143,7 @@ def sample( key,params,tokenizer_params,
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-    cfg_scale=cfg_scale.at[200:].set(4)
+    # cfg_scale=cfg_scale.at[200:].set(4)
     # cfg_scale=cfg_scale.at[150:200].set(4)
     # cfg_scale=cfg_scale.at[200:].set(6)
 
@@ -157,8 +157,10 @@ def sample( key,params,tokenizer_params,
     attn_mask = jnp.zeros((1, max_cache_length), dtype=jnp.int32)
     prefill_jit = jax.jit(partial(model.apply, method=FlaxRAR.prefill))
 
+    # none_condition=jnp.clip(condition+2,0,999)+1024+1
+    # none_condition=condition.at[:].set(56)+1024+1
+    none_condition = model.apply({'params': params}, condition, method=model.get_none_condition)
     condition_jax = condition + 1024 + 1
-    none_condition = model.apply({'params': params}, condition_jax, method=model.get_none_condition)
 
     c = jnp.concat([condition_jax, none_condition], axis=0)
     logits, cache = prefill_jit({'params': params}, c,

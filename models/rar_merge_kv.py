@@ -84,33 +84,31 @@ class AttentionRAR(nn.Module):
             b,*_=v.shape
 
             slice_indices = (0, 0, end_index , 0)
-            v = jax.lax.dynamic_update_slice(
+            v_cond = jax.lax.dynamic_update_slice(
                 cache['v'],
                 v[:b//2],
                 slice_indices,
             )
-            k = jax.lax.dynamic_update_slice(
+            k_cond = jax.lax.dynamic_update_slice(
                 cache['k'], k[:b//2], slice_indices
             )
             new_cache = {
-                'v': v,
-                'k': k,
+                'v': v_cond,
+                'k': k_cond,
                 'end_index': cache['end_index'] + N,
             }
 
-
-            un_v = jax.lax.dynamic_update_slice(
-                v,
+            v_uncond = jax.lax.dynamic_update_slice(
+                cache['v'],
                 v[b//2:],
                 slice_indices,
             )
-            un_k = jax.lax.dynamic_update_slice(
-                k, k[b//2:], slice_indices
+            k_uncond = jax.lax.dynamic_update_slice(
+                cache['k'],k[b//2:], slice_indices
             )
 
-
-            v=jnp.concat([v,un_v],axis=0)
-            k = jnp.concat([k, un_k], axis=0)
+            v=jnp.concat([v_cond,v_uncond],axis=0)
+            k = jnp.concat([k_cond, k_uncond], axis=0)
 
         else:
             new_cache = None

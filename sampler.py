@@ -145,7 +145,7 @@ def sample( key,params,tokenizer_params,
         ((step / image_seq_len) ** scale_pow) * jnp.pi)) * 1 / 2
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
-    cfg_scale=cfg_scale.at[48:].set(50)
+    # cfg_scale=cfg_scale.at[48:].set(50)
 
     # cfg_scale=cfg_scale.at[:].set(1.5)
 
@@ -158,8 +158,11 @@ def sample( key,params,tokenizer_params,
     attn_mask = jnp.zeros((1, max_cache_length), dtype=jnp.int32)
     prefill_jit = jax.jit(partial(model.apply, method=FlaxRAR.prefill))
 
+    # none_condition=jnp.clip(condition+2,0,999)+1024+1
+    # none_condition=condition.at[:].set(56)+1024+1
+    none_condition = model.apply({'params': params}, condition, method=model.get_none_condition)
     condition_jax = condition + 1024 + 1
-    none_condition = model.apply({'params': params}, condition_jax, method=model.get_none_condition)
+
 
 
     if guidance_scale != 0:
@@ -436,7 +439,7 @@ def main():
     model_params,tokenizer_params,model,tokenizer_jax,rar_config = init_model()
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
-    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,1,fid_model,fid_model_params,key=9)
+    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,1,fid_model,fid_model_params,key=8  )
     sampler.count=1
     sampler.sample(model_params,True,1)
     # sampler.sample_and_eval(model_params)

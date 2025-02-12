@@ -35,10 +35,10 @@ from utils.generate_utils import create_npz_from_np, collect_process_data
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
     # local_dir= '../'
-    local_dir= '/root/'
-    # local_dir = 'torch_model_weight/'
+    # local_dir= '/root/'
+    local_dir = 'torch_model_weight/'
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
         num_resolutions = 5
@@ -147,6 +147,7 @@ def sample( key,params,tokenizer_params,
 
     cfg_scale = (guidance_scale - 1) * scale_step + 1
     # cfg_scale=cfg_scale.at[200:].set(10)
+    # cfg_scale=cfg_scale.at[16:].set(50)
 
     max_cache_length = 256
     cache = init_cache(config,
@@ -203,6 +204,9 @@ def sample( key,params,tokenizer_params,
         cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
         logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[i + 1]
 
+        cond_top5 = jax.lax.top_k(flax.linen.softmax(logits, axis=-1), 5)
+        jax.debug.print('top 5 :{log} {s}', log=cond_top5, s=jnp.sum(cond_top5[0]))
+
         # if guidance_scale != 0:
         #     logits, cache = decode_jit({'params': params},
         #                                jnp.concat([last_token,last_token], axis=0),
@@ -246,13 +250,14 @@ class Sampler:
     def __init__(self,model,tokenizer,tokenizer_params,rar_config:RARConfig,batch_size=128,fid_model=None,fid_model_params=None,
                  guidance_scale=15.5,
                  scale_pow=2.5,
-                 randomize_temperature=1.0
+                 randomize_temperature=1.0,
+                 key=0
                  ):
         self.model=model
         self.tokenizer=tokenizer
         self.tokenizer_params=tokenizer_params
         # self.rng=rng = jax.random.PRNGKey(0)
-        self.rng = rng = jax.random.PRNGKey(42)
+        self.rng = rng = jax.random.PRNGKey(key)
         sample_rng, dropout_rng = jax.random.split(rng)
         self.sample_rng = jax.random.split(sample_rng, jax.device_count())
         physical_mesh = mesh_utils.create_device_mesh((jax.device_count(),))
@@ -349,8 +354,8 @@ class Sampler:
         sample_rng=self.sample_rng
         data = []
         # iters = 100
-        iters = 51200//(jax.device_count()*self.batch_size)
-        # iters = 1
+        # iters = 51200//(jax.device_count()*self.batch_size)
+        iters = 1
         for _ in tqdm.tqdm(range(iters)):
         # for _ in range(iters):
             sample_rng, sample_img = self.sample_jit(sample_rng, params, self.tokenizer_params,
@@ -487,10 +492,11 @@ def main():
     model_params,tokenizer_params,model,tokenizer_jax,rar_config = init_model()
     fid_model = inception.InceptionV3(pretrained=True)
     fid_model_params = fid_model.init(jax.random.PRNGKey(1), jnp.ones((1, 256, 256, 3)))
-    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,128,fid_model,fid_model_params)
+    sampler=Sampler(model,tokenizer_jax,tokenizer_params,rar_config,1,fid_model,fid_model_params,key=42)
     # sampler.sample(model_params,True,scale_pow=0.5,randomize_temperature=1.0,guidance_scale=1.5)
+    sampler.sample(model_params, True, guidance_scale=16.0,randomize_temperature=1.0,scale_pow=2.75)
     # sampler.sample_and_eval(model_params)
-    sampler.scan_sample_and_eval(model_params)
+    # sampler.scan_sample_and_eval(model_params)
     # sampler.sample(model_params)
 
 
