@@ -28,10 +28,10 @@ from jax.experimental.shard_map import shard_map
 
 def init_model():
     # Choose one from ["rar_b_imagenet", "rar_l_imagenet", "rar_xl_imagenet", "rar_xxl_imagenet"]
-    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][0]
+    rar_model_size = ["rar_b", "rar_l", "rar_xl", "rar_xxl"][-1]
     # local_dir= '../'
-    # local_dir= '/root/'
-    local_dir= 'torch_model_weight/'
+    local_dir= '/root/'
+
 
     class ConfigTokenizer:
         channel_mult = [1, 1, 2, 2, 4]
@@ -99,15 +99,14 @@ def main(args):
     mesh=Mesh(physical_mesh, ('dp',))
 
     sample_fn=partial(sample_cfg,model=model,config=rar_config,batch_size=batch_size,tokenizer_jax=tokenizer_jax)
-    # sample_fn=shard_map(sample_fn,mesh=mesh,in_specs=(
-    #     P('dp'),P(None),P(None)
-    # ),
-    #     out_specs=P('dp')
-    # )
+    sample_fn=shard_map(sample_fn,mesh=mesh,in_specs=(
+        P('dp'),P(None),P(None)
+    ),
+        out_specs=P('dp')
+    )
 
     # 构造 rngs 字典
     sample_jit=jax.jit(sample_fn)
-    # sample_jit=sample_fn
 
 
     data_per_shard = args.data_per_shard
@@ -218,6 +217,6 @@ if __name__ == "__main__":
     parser.add_argument("--global-seed", type=int, default=20360724)
     parser.add_argument("--batch-per-core", type=int, default=128)
     parser.add_argument("--num-samples", type=int, default=50000000)
-    # jax.distributed.initialize()
+    jax.distributed.initialize()
     main(parser.parse_args())
     # main(parser.parse_args())
