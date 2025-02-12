@@ -158,8 +158,8 @@ def sample( key,params,tokenizer_params,
     prefill_jit = jax.jit(partial(model.apply, method=FlaxRAR.prefill))
 
     # none_condition=jnp.clip(condition+2,0,999)+1024+1
-    none_condition=condition.at[:].set(56)+1024+1
-    # none_condition = model.apply({'params': params}, condition, method=model.get_none_condition)
+    # none_condition=condition.at[:].set(56)+1024+1
+    none_condition = model.apply({'params': params}, condition, method=model.get_none_condition)
     # none_condition=jax.random.randint(key, (batch_size, 1), 0, 1000)+1024+1
     condition_jax = condition + 1024 + 1
 
@@ -344,10 +344,10 @@ class Sampler:
 
 
     def sample(self,params,save_npz=False,
-               # guidance_scale=8.0,
-               # scale_pow=1.2,
-               guidance_scale=1.5,
-                            scale_pow=0.7,
+               guidance_scale=8.0,
+               scale_pow=1.2,
+               # guidance_scale=1.5,
+               #              scale_pow=0.7,
                             randomize_temperature=1.02,):
         print('sample')
         # 构造 rngs 字典
