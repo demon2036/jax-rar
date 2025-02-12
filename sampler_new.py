@@ -345,7 +345,8 @@ class Sampler:
 
     def sample(self,params,save_npz=False,
                # guidance_scale=8.0,
-               guidance_scale=7.0,
+               # scale_pow=1.2,
+               guidance_scale=9.0,
                             scale_pow=1.2,
                             randomize_temperature=1.02,):
         print('sample')
