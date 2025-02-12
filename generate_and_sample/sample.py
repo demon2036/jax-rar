@@ -194,9 +194,7 @@ def sample_cfg( key,params,tokenizer_params,
 
 
     choice = jax.random.randint(key_choice, (batch_size,), 16, 192)[..., None]
-    # x = jnp.arange(0, image_seq_len)[None, ...]
     var_cfg = jax.random.randint(key_cfg, (batch_size,), 8, 100)[..., None] #* 10
-    # print(jnp.where(jnp.arange(0, 256)[None, ...] < choice, x, var_cfg))
     cfg_scale=jnp.where(jnp.arange(0, image_seq_len)[None, ...] < choice, cfg_scale[None,...], var_cfg)
 
 
@@ -218,9 +216,14 @@ def sample_cfg( key,params,tokenizer_params,
         logits, cache = prefill_jit({'params': params}, c,
                                     cache, attn_mask=attn_mask)
         cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[:,0]
+        logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[:,0][...,None,None]
+
+        print(f'{logits.shape=}')
     else:
         logits, cache = prefill_jit({'params': params}, condition_jax, cache, attn_mask=attn_mask)
+
+
+    print(f'{logits.shape=}')
 
     token_buffer = jnp.zeros((batch_size, 256), jnp.int32)
 
@@ -252,7 +255,8 @@ def sample_cfg( key,params,tokenizer_params,
 
 
             cond_logits, uncond_logits = logits[:num_samples], logits[num_samples:]
-            logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[:,i + 1]
+            logits = uncond_logits + (cond_logits - uncond_logits) * cfg_scale[:,i + 1][...,None,None]
+            # logits = uncond_logits + (cond_logits - uncond_logits)
         else:
             logits, cache = decode_jit({'params': params},last_token, condition_jax,
                                        sample_state.position_ids, sample_state.cache, sample_state.attn_mask)
