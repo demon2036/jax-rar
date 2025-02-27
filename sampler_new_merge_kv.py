@@ -58,7 +58,7 @@ def init_model():
                     )
     # download the rar generator weight
     hf_hub_download(repo_id="yucornetto/RAR", filename=f"{rar_model_size}.bin",
-                    local_dir=local_dir
+                    local_dir=local_dir,
                     )
 
     config = demo_util.get_config("./pytorch_rar/configs/training/generator/rar.yaml")
